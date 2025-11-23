@@ -19,7 +19,9 @@
 
 // ===== インクルード =====
 #include "Core/Application.h"
+#include "Core/Time.h"
 #include "main.h"
+#include <string>
 #include <stdexcept>
 
 Application::Application(HWND hwnd)
@@ -91,8 +93,37 @@ void Application::Initialize()
 		throw std::runtime_error("Failed to create RTV");
 	}
 
+	// 4. 深度バッファ（Z-Buffer）の作成
+	D3D11_TEXTURE2D_DESC depthBufferDesc = {};
+	depthBufferDesc.Width = Config::SCREEN_WIDTH;
+	depthBufferDesc.Height = Config::SCREEN_HEIGHT;
+	depthBufferDesc.MipLevels = 1;
+	depthBufferDesc.ArraySize = 1;
+	depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthBufferDesc.SampleDesc.Count = 1;
+	depthBufferDesc.SampleDesc.Quality = 0;
+	depthBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	depthBufferDesc.CPUAccessFlags = 0;
+	depthBufferDesc.MiscFlags = 0;
+
+	// テクスチャ作成
+	ComPtr<ID3D11Texture2D> depthStencilBuffer;
+	hr = m_device->CreateTexture2D(&depthBufferDesc, nullptr, &depthStencilBuffer);
+	if (FAILED(hr))
+	{
+		throw std::runtime_error("Failed to create Depth Stencil Buffer");
+	}
+
+	// ビュー作成
+	hr = m_device->CreateDepthStencilView(depthStencilBuffer.Get(), nullptr, &m_depthStencilView);
+	if (FAILED(hr))
+	{
+		throw std::runtime_error("Failed to create Depth Stencil View");
+	}
+
 	// レンダーターゲットをセット
-	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
 
 	// ビューポート設定
 	D3D11_VIEWPORT vp = {};
@@ -104,31 +135,162 @@ void Application::Initialize()
 	vp.TopLeftY = 0;
 	m_context->RSSetViewports(1, &vp);
 
+	// 時間管理の初期化
+	Time::Initialize();
+	Time::SetFrameRate(Config::FRAME_RATE);
+
 	// --- ImGui ---
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;	// キーボード操作有効化したい場合
 
-	ImGui::StyleColorsDark();	// ダークテーマ適用
+	// ドッキングとマルチビューポートを有効化
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;	// キーボード操作有効
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;		// ウィンドウドッキング有効
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;		// 別ウィンドウ化を有効
+
+	// スタイル調整
+	ImGui::StyleColorsDark();
+	ImGuiStyle& style = ImGui::GetStyle();
+
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		style.WindowBorderHoverPadding = 1.0f;
+		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+	}
 	
 	// Win32 / DX11 バインディングの初期化
 	ImGui_ImplWin32_Init(m_hwnd);
 	ImGui_ImplDX11_Init(m_device.Get(), m_context.Get());
 
+	m_primitiveRenderer = std::make_unique<PrimitiveRenderer>(m_device.Get(), m_context.Get());
+	m_primitiveRenderer->Initialize();
+
+	Context context;
+	context.renderer = m_primitiveRenderer.get();
+
 	// シーンマネージャ
+	m_sceneManager.SetContext(context);
+	m_appContext = context;
+	m_sceneManager.SetContext(m_appContext);
 	m_sceneManager.Initialize(SceneType::Title);
+}
+
+// 全シーン共通のデバッグメニュー
+void Application::DrawDebugUI()
+{
+	// Contextの参照を取得
+	Context& ctx = m_sceneManager.GetContext();
+
+	ImGui::Begin("Debug Menu");	// ウィンドウ作成
+
+	// 1. FPSと時間
+	if (ctx.debug.showFps)
+	{
+		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+		ImGui::Text("Frame Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
+	}
+	ImGui::Text("Total Time: %.2f s", Time::TotalTime());
+	ImGui::Separator();
+
+	// 2. 表示切替
+	if (ImGui::CollapsingHeader("Display Settings", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::Checkbox("Show FPS", &ctx.debug.showFps);
+
+		ImGui::Separator();
+		ImGui::Checkbox("Show Grid", &ctx.debug.showGrid);
+		ImGui::Checkbox("Show Axis", &ctx.debug.showAxis);
+
+		ImGui::Separator();
+		ImGui::Checkbox("Show Colliders", &ctx.debug.showColliders);
+		// コライダー表示中のみ有効なサブ設定
+		if (ctx.debug.showColliders)
+		{
+			ImGui::Indent();
+			if (ImGui::RadioButton("Wireframe", ctx.debug.wireframeMode)) ctx.debug.wireframeMode = true;
+			ImGui::SameLine();
+			if (ImGui::RadioButton("Solid", !ctx.debug.wireframeMode)) ctx.debug.wireframeMode = false;
+			ImGui::Unindent();
+		}
+	}
+
+	// 3. ゲーム進行制御
+	if (ImGui::CollapsingHeader("Game Control", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		// タイムスケール操作
+		ImGui::Text("Time Scale");
+		ImGui::SliderFloat("##TimeScale", &Time::timeScale, 0.0f, 2.0f, "%.1fx");
+
+		// --- 一時停止 / 再開 ---
+		if (Time::isPaused)
+		{
+			// 停止中なので「再開」ボタン
+			if (ImGui::Button("Resume"))
+			{
+				Time::isPaused = false;
+			}
+			ImGui::SameLine();
+
+			// --- コマ送り（停止中のみ表示）---
+			if (ImGui::Button("Step Frame (+1F)"))
+			{
+				Time::StepFrame();
+			}
+		}
+		else
+		{
+			// 動作中なので「一時停止」ボタン
+			if (ImGui::Button("Pause"))
+			{
+				Time::isPaused = true;
+			}
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Reset Speed"))
+		{
+			Time::timeScale = 1.0f;
+		}
+
+		// リスタート
+		if (ImGui::Button("Restart Scene", ImVec2(-1, 0)))
+		{
+			SceneManager::ChangeScene(m_sceneManager.GetCurrentType());
+		}
+	}
+
+	// 4. シーン遷移
+	if (ImGui::CollapsingHeader("Scene Transition"))
+	{
+		if (ImGui::Button("Title", ImVec2(100, 0)))
+		{
+			SceneManager::ChangeScene(SceneType::Title);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Game", ImVec2(100, 0)))
+		{
+			SceneManager::ChangeScene(SceneType::Game);
+		}
+	}
+
+	ImGui::End();
+
+	if (ctx.debug.showDemoWindow) ImGui::ShowDemoWindow();
 }
 
 void Application::Update()
 {
+	// 毎フレーム時間を更新
+	Time::Update();
+
 	// --- ImGui ---
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	// デモウィンドウの表示（導入確認用）
-	ImGui::ShowDemoWindow();
+	// デバッグUI
+	DrawDebugUI();
 
 	// シーン更新
 	m_sceneManager.Update();
@@ -136,8 +298,27 @@ void Application::Update()
 
 void Application::Render()
 {
+	// 1. レンダーターゲットをセット
+	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+
+	// 2. ビューポート設定
+	D3D11_VIEWPORT vp = {};
+	vp.Width = static_cast<float>(Config::SCREEN_WIDTH);
+	vp.Height = static_cast<float>(Config::SCREEN_HEIGHT);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	m_context->RSSetViewports(1, &vp);
+
 	float color[] = { 0.1f, 0.1f, 0.3f, 1.0f };
 	m_context->ClearRenderTargetView(m_renderTargetView.Get(), color);
+
+	// 深度バッファのクリア
+	if (m_depthStencilView)
+	{
+		m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	}
 
 	// シーン描画
 	m_sceneManager.Render();
@@ -146,11 +327,23 @@ void Application::Render()
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
+	}
+
 	m_swapChain->Present(Config::VSYNC_ENABLED ? 1: 0, 0);
 }
 
 void Application::Run()
 {
+	// 1. 更新と描画
 	Update();
 	Render();
+
+	// 2. フレームレート調整（待機）
+	// Timeクラスが自動で残りの時間を計算して待ってくれます
+	Time::WaitFrame();
 }

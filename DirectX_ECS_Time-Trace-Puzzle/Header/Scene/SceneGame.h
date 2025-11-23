@@ -1,6 +1,6 @@
 /*****************************************************************//**
- * @file	SceneTitle.h
- * @brief	タイトルシーン
+ * @file	SceneGame.h
+ * @brief	ゲームシーン
  * 
  * @details	
  * 
@@ -17,17 +17,17 @@
  * @note	（省略可）
  *********************************************************************/
 
-#ifndef ___SCENE_TITLE_H___
-#define ___SCENE_TITLE_H___
+#ifndef ___SCENE_GAME_H___
+#define ___SCENE_GAME_H___
 
 // ===== インクルード =====
 #include "Scene/IScene.h"
 
 /**
- * @class	SceneTitle
- * @brief	タイトルシーン
+ * @class	SceneGame
+ * @brief	ゲームシーン
  */
-class SceneTitle
+class SceneGame
 	: public IScene
 {
 public:
@@ -38,4 +38,4 @@ public:
 	void OnInspector() override;
 };
 
-#endif // !___SCENE_TITLE_H___
+#endif // !___SCENE_GAME_H___

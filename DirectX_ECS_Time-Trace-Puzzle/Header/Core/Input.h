@@ -1,6 +1,6 @@
 /*****************************************************************//**
- * @file	SceneTitle.h
- * @brief	タイトルシーン
+ * @file	Input.h
+ * @brief	キーボード、コントローラー操作
  * 
  * @details	
  * 
@@ -8,7 +8,7 @@
  * @author	Iwai Shogo
  * ------------------------------------------------------------
  * 
- * @date	2025/11/23	初回作成日
+ * @date	2025/11/24	初回作成日
  * 			作業内容：	- 追加：
  * 
  * @update	2025/xx/xx	最終更新日
@@ -17,25 +17,10 @@
  * @note	（省略可）
  *********************************************************************/
 
-#ifndef ___SCENE_TITLE_H___
-#define ___SCENE_TITLE_H___
+#ifndef ___INPUT_H___
+#define ___INPUT_H___
 
 // ===== インクルード =====
-#include "Scene/IScene.h"
+#include <Windows.h>
 
-/**
- * @class	SceneTitle
- * @brief	タイトルシーン
- */
-class SceneTitle
-	: public IScene
-{
-public:
-	void Initialize() override;
-	void Finalize() override;
-	void Update() override;
-	void Render() override;
-	void OnInspector() override;
-};
-
-#endif // !___SCENE_TITLE_H___
+#endif // !___INPUT_H___

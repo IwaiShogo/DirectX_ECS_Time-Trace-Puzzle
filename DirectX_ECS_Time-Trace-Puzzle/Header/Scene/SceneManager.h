@@ -22,7 +22,10 @@
 
 // ===== インクルード =====
 #include "Scene/IScene.h"
-#include "SceneTitle.h"
+#include "Scene/SceneTitle.h"
+#include "Scene/SceneGame.h"
+#include "Core/Context.h"
+
 #include <memory>
 #include <map>
 #include <functional>
@@ -35,7 +38,7 @@ class SceneManager
 {
 public:
 	SceneManager()
-		: m_currenType(SceneType::None) {}
+		: m_currentType(SceneType::None) {}
 
 	~SceneManager()
 	{
@@ -44,28 +47,51 @@ public:
 			m_currentScene->Finalize();
 		}
 	}
+	
+	// 静的メソッド：シーン切り替え
+	static void ChangeScene(SceneType nextScene)
+	{
+		m_nextSceneRequest = nextScene;
+	}
+
+	// ApplicationからContextをセット
+	void SetContext(const Context& context)
+	{
+		m_context = context;
+	}
+
+	Context& GetContext()
+	{
+		return m_context;
+	}
+
+	SceneType GetCurrentType() const
+	{
+		return m_currentType;
+	}
 
 	// 最初のシーンを設定して開始
 	void Initialize(SceneType startScene)
 	{
 		ChangeScene(startScene);
+		ProcessSceneChange();
 	}
 
 	// 毎フレーム呼ぶ
 	void Update()
 	{
-		if (!m_currentScene) return;
-
-		// 現在のシーンを実行し、次のシーン要求を受けとる
-		SceneType next = m_currentScene->Update();
-
-		// デバッグ情報（ImGui）
-		m_currentScene->OnInspector();
-
-		// シーンが変わっていたら切り替え
-		if (next != m_currenType)
+		// シーン切り替えリクエストがあれば処理
+		if (m_nextSceneRequest != SceneType::None)
 		{
-			ChangeScene(next);
+			ProcessSceneChange();
+		}
+
+		if (m_currentScene)
+		{
+			m_currentScene->Update();
+
+			// デバッグ表示
+			m_currentScene->OnInspector();
 		}
 	}
 
@@ -78,22 +104,23 @@ public:
 	}
 
 private:
-	// シーン切り替え処理
-	void ChangeScene(SceneType nextScene)
+	void ProcessSceneChange()
 	{
-		// 古いシーンの終了
+		// リクエスト消化
+		SceneType next = m_nextSceneRequest;
+		m_nextSceneRequest = SceneType::None;
+
+		// 同じシーンなら無視
+		if (next == m_currentType) return;
+		if (m_currentScene) m_currentScene->Finalize();
+
+		m_currentScene = CreateScene(next);
+		m_currentType = next;
+
 		if (m_currentScene)
 		{
-			m_currentScene->Finalize();
-		}
+			m_currentScene->Setup(&m_context);
 
-		// 新しいシーンの生成
-		m_currentScene = CreateScene(nextScene);
-		m_currenType = nextScene;
-
-		// 新しいシーンの初期化
-		if (m_currentScene)
-		{
 			m_currentScene->Initialize();
 		}
 	}
@@ -105,6 +132,8 @@ private:
 		{
 		case SceneType::Title:
 			return std::make_shared<SceneTitle>();
+		case SceneType::Game:
+			return std::make_shared<SceneGame>();
 		default:
 			return nullptr;
 		}
@@ -112,7 +141,12 @@ private:
 
 private:
 	std::shared_ptr<IScene> m_currentScene;
-	SceneType m_currenType;
+	SceneType m_currentType;
+
+	// 次のシーンへの予約
+	inline static SceneType m_nextSceneRequest;
+
+	Context m_context;
 };
 
 #endif // !___SCENE_MANAGER_H___

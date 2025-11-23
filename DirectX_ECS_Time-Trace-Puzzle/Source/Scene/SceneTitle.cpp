@@ -19,12 +19,12 @@
 
 // ===== インクルード =====
 #include "Scene/SceneTitle.h"
-#include "imgui.h"
+#include "Scene/SceneManager.h"
 #include <iostream>
 
 void SceneTitle::Initialize()
 {
-	std::cout << "Title Scene Initialized" << std::endl;
+	IScene::Initialize();
 }
 
 void SceneTitle::Finalize()
@@ -32,9 +32,9 @@ void SceneTitle::Finalize()
 	std::cout << "Title Scene Finalized" << std::endl;
 }
 
-SceneType SceneTitle::Update()
+void SceneTitle::Update()
 {
-	return SceneType::Title;
+
 }
 
 void SceneTitle::Render()
@@ -47,7 +47,7 @@ void SceneTitle::OnInspector()
 	ImGui::Text("Press Enter to Start");
 	if (ImGui::Button("Go to Game Scene"))
 	{
-
+		SceneManager::ChangeScene(SceneType::Game);
 	}
 	ImGui::End();
 }

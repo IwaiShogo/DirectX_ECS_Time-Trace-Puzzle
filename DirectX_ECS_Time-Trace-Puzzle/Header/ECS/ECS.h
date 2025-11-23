@@ -27,17 +27,21 @@
 #define ___ECS_H___
 
  // ===== インクルード =====
+#include "Core/Time.h"
+#include "Core/Context.h"
+
 #include <vector>
 #include <memory>
 #include <algorithm>
 #include <type_traits>
 #include <cassert>
 
-// 1. Entity定義
+// ------------------------------------------------------------
+// 1. 基本定義 & ComponentFamiliy
+// ------------------------------------------------------------
 using Entity = uint32_t;
 const Entity NullEntity = 0;
 
-// 2. Type ID Generator
 class ComponentFamily
 {
 	static size_t identifier()
@@ -55,15 +59,17 @@ public:
 	}
 };
 
-// 3. Base Pool Interface（型消去用）
+// ------------------------------------------------------------
+// 2. Pool & SparseSet
+// ------------------------------------------------------------
 class IPool
 {
 public:
 	virtual ~IPool() = default;
 	virtual void remove(Entity entity) = 0;
+	virtual bool has(Entity entity) const = 0;
 };
 
-// 4. Sparse Set実装
 template<typename T>
 class SparseSet
 	: public IPool
@@ -74,7 +80,7 @@ class SparseSet
 
 public:
 	// コンポーネントが存在するか
-	bool has(Entity entity) const
+	bool has(Entity entity) const override
 	{
 		return	entity < sparse.size() &&
 			sparse[entity] < dense.size() &&
@@ -85,7 +91,10 @@ public:
 	template<typename... Args>
 	T& emplace(Entity entity, Args&&... args)
 	{
-		assert(!has(entity));
+		if (has(entity))
+		{
+			return data[sparse[entity]];
+		}
 
 		if (sparse.size() <= entity)
 		{
@@ -131,7 +140,9 @@ public:
 	const std::vector<Entity>& getEntities() const { return dense; }
 };
 
-// 5. Registry（ECSの管理者）
+// ------------------------------------------------------------
+// 3. Registry
+// ------------------------------------------------------------
 class Registry
 {
 	Entity nextEntity = 1;
@@ -167,6 +178,13 @@ public:
 		return getPool<T>().emplace(entity, std::forward<Args>(args)...);
 	}
 
+	// コンポーネントを持っているか確認
+	template<typename T>
+	bool has(Entity entity)
+	{
+		return getPool<T>().has(entity);
+	}
+
 	// コンポーネント取得
 	template<typename T>
 	T& get(Entity entity)
@@ -174,19 +192,129 @@ public:
 		return getPool<T>().get(entity);
 	}
 
-	// View的な機能: 特定componentを持つEntityのループ
-	template<typename T, typename Func>
+	// ============================================================
+	// Multi-View Implementation (C++17)
+	// ============================================================
+	/**
+	 * @brief	特定Componentを持つEntityのループ
+	 * @details	
+	 * 使い方：registry.view<Transform, Velocity>([](Entity e, Transform& t, Velocity& v) { ... });
+	 * @warning
+	 * 一番最初の型（TFirst）を基準にループします。
+	 * Entity数が「最も少ない」コンポーネントを最初に指定すると高速です。
+	 */
+	template<typename TFirst, typename... TOthers, typename Func>
 	void view(Func func)
 	{
-		auto& pool = getPool<T>();
-		auto& data = pool.getData();
-		auto& entities = pool.getEntities();
+		auto& poolFirst = getPool<TFirst>();	// ループ駆動用プール
 
-		for (size_t i = 0; i < data.size(); ++i)
+		// 他のコンポーネントのプールへの参照をタプルで取得
+		auto poolTuple = std::make_tuple(&getPool<TOthers>()...);
+
+		auto& entities = poolFirst.getEntities();
+		auto& dataFirst = poolFirst.getData();
+
+		// 基準プールの全Entityをループ
+		for (size_t i = 0; i < entities.size(); ++i)
 		{
-			func(entities[i], data[i]);
+			Entity entity = entities[i];
+			
+			// 他の全てのプールがこのEntityを持っているかチェック
+			// 1つでも持っていなければ false になり、ifに入らない
+			if ((std::get<SparseSet<TOthers>*>(poolTuple)->has(entity) && ...))
+			{
+				// 全て持っているので関数実行
+				func(
+					entity,
+					dataFirst[i],
+					std::get<SparseSet<TOthers>*>(poolTuple)->get(entity)...
+				);
+			}
 		}
 	}
+};
+
+// ------------------------------------------------------------
+// 4. EntityHandle（チェーンメソッド用）
+// ------------------------------------------------------------
+/**
+ * @class	EntityHandle
+ * @brief	一気にComponentを追加するためのヘルパー
+ */
+class EntityHandle
+{
+	Registry* registry;
+	Entity entity;
+
+public:
+	EntityHandle(Registry* r, Entity e)
+		: registry(r), entity(e) {}
+
+	// .add<Transform>(...) のように繋げて書ける
+	template<typename T, typename... Args>
+	EntityHandle& add(Args&&... args)
+	{
+		registry->emplace<T>(entity, std::forward<Args>(args)...);
+		return *this;
+	}
+
+	// IDを取得して終了
+	Entity id() const { return entity; }
+};
+
+// ------------------------------------------------------------
+// 5. System Interface & World
+// ------------------------------------------------------------
+class ISystem
+{
+public:
+	virtual ~ISystem() = default;
+	virtual void Update(Registry& registry) {}
+	virtual void Render(Registry& registry, const Context& context) {}
+};
+
+class World
+{
+	Registry registry;
+	std::vector<std::unique_ptr<ISystem>> systems;
+
+public:
+	// Entity作成を開始する（ビルダーを返す）
+	EntityHandle create_entity()
+	{
+		return EntityHandle(&registry, registry.create());
+	}
+
+	// システムの登録
+	template<typename T, typename... Args>
+	T* registerSystem(Args&&... args)
+	{
+		auto sys = std::make_unique<T>(std::forward<Args>(args)...);
+		auto ptr = sys.get();
+		systems.push_back(std::move(sys));
+		return ptr;
+	}
+
+	// 全システムのUpdateを実行
+	void Tick()
+	{
+		for (auto& sys : systems)
+		{
+			sys->Update(registry);
+		}
+	}
+
+	// 全システムのRenderを実行
+	void Render(const Context& context)
+	{
+		for (auto& sys : systems)
+		{
+			sys->Render(registry, context);
+		}
+	}
+
+	// Registryへの直接アクセスが必要な場合
+	Registry& getRegistry() { return registry; }
 };
 
 #endif // !___ECS_H___

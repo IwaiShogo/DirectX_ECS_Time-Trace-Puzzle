@@ -29,7 +29,7 @@ namespace Config
 
 	// レンダリング設定
 	static const unsigned int FRAME_RATE = 60;	// 目標FPS（リフレッシュレートの分子）
-	static const bool VSYNC_ENABLED = true;		// 垂直同期（true: 60fps固定、false: 無制限）
+	static const bool VSYNC_ENABLED = false;		// 垂直同期（true: 60fps固定、false: 無制限）
 }
 
 #endif // !___MAIN_H___

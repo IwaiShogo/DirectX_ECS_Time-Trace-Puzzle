@@ -1,6 +1,6 @@
 /*****************************************************************//**
- * @file	SceneTitle.h
- * @brief	タイトルシーン
+ * @file	RenderSystem.h
+ * @brief	描画処理
  * 
  * @details	
  * 
@@ -17,25 +17,25 @@
  * @note	（省略可）
  *********************************************************************/
 
-#ifndef ___SCENE_TITLE_H___
-#define ___SCENE_TITLE_H___
+#ifndef ___RENDER_SYSTEM_H___
+#define ___RENDER_SYSTEM_H___
 
 // ===== インクルード =====
-#include "Scene/IScene.h"
+#include "ECS/ECS.h"
+#include "Graphics/PrimitiveRenderer.h"
+#include "Components/Components.h"
 
-/**
- * @class	SceneTitle
- * @brief	タイトルシーン
- */
-class SceneTitle
-	: public IScene
+class RenderSystem
+	: public ISystem
 {
 public:
-	void Initialize() override;
-	void Finalize() override;
-	void Update() override;
-	void Render() override;
-	void OnInspector() override;
+	RenderSystem(PrimitiveRenderer* rendererPtr)
+		: m_renderer(rendererPtr) {}
+
+	void Render(Registry& registry, const Context& context) override;
+
+private:
+	PrimitiveRenderer* m_renderer;
 };
 
-#endif // !___SCENE_TITLE_H___
+#endif // !___RENDER_SYSTEM_H___

@@ -46,6 +46,12 @@
     <Filter Include="Source Files\Scene">
       <UniqueIdentifier>{b2e3366b-53b1-416a-8599-3e080213a946}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Shaders">
+      <UniqueIdentifier>{fd6385c8-5bda-4ee0-b98f-2ae497b9bc90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Graphics">
+      <UniqueIdentifier>{4019b08d-8e3b-404d-babb-4d4b17b37e12}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Header\ECS\ECS.h">
@@ -56,6 +62,48 @@
     </ClInclude>
     <ClInclude Include="Header\main.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Scene\IScene.h">
+      <Filter>Header Files\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Scene\SceneManager.h">
+      <Filter>Header Files\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Scene\SceneTitle.h">
+      <Filter>Header Files\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Components\Components.h">
+      <Filter>Header Files\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Scene\SceneGame.h">
+      <Filter>Header Files\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Graphics\PrimitiveRenderer.h">
+      <Filter>Header Files\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Systems\RenderSystem.h">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Systems\MovementSystem.h">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Core\Context.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Core\Time.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Library\ImGui\imconfig.h">
+      <Filter>Library\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Library\ImGui\imgui.h">
+      <Filter>Library\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Library\ImGui\imgui_impl_dx11.h">
+      <Filter>Library\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Library\ImGui\imgui_impl_win32.h">
+      <Filter>Library\ImGui</Filter>
     </ClInclude>
     <ClInclude Include="Library\ImGui\imgui_internal.h">
       <Filter>Library\ImGui</Filter>
@@ -69,26 +117,11 @@
     <ClInclude Include="Library\ImGui\imstb_truetype.h">
       <Filter>Library\ImGui</Filter>
     </ClInclude>
-    <ClInclude Include="Library\ImGui\imgui_impl_dx11.h">
-      <Filter>Library\ImGui</Filter>
+    <ClInclude Include="Header\Systems\CollisionSystem.h">
+      <Filter>Header Files\Systems</Filter>
     </ClInclude>
-    <ClInclude Include="Library\ImGui\imgui_impl_win32.h">
-      <Filter>Library\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Library\ImGui\imconfig.h">
-      <Filter>Library\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Library\ImGui\imgui.h">
-      <Filter>Library\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Header\Scene\IScene.h">
-      <Filter>Header Files\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="Header\Scene\SceneManager.h">
-      <Filter>Header Files\Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="Header\Scene\SceneTitle.h">
-      <Filter>Header Files\Scene</Filter>
+    <ClInclude Include="Header\Core\Input.h">
+      <Filter>Header Files\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -98,16 +131,25 @@
     <ClCompile Include="Source\Core\Application.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Scene\SceneTitle.cpp">
+      <Filter>Source Files\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\SceneGame.cpp">
+      <Filter>Source Files\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\PrimitiveRenderer.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Systems\RenderSystem.cpp">
+      <Filter>Source Files\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Library\ImGui\imgui.cpp">
+      <Filter>Library\ImGui</Filter>
+    </ClCompile>
     <ClCompile Include="Library\ImGui\imgui_demo.cpp">
       <Filter>Library\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="Library\ImGui\imgui_draw.cpp">
-      <Filter>Library\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Library\ImGui\imgui_tables.cpp">
-      <Filter>Library\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Library\ImGui\imgui_widgets.cpp">
       <Filter>Library\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="Library\ImGui\imgui_impl_dx11.cpp">
@@ -116,11 +158,19 @@
     <ClCompile Include="Library\ImGui\imgui_impl_win32.cpp">
       <Filter>Library\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="Library\ImGui\imgui.cpp">
+    <ClCompile Include="Library\ImGui\imgui_tables.cpp">
       <Filter>Library\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Scene\SceneTitle.cpp">
-      <Filter>Source Files\Scene</Filter>
+    <ClCompile Include="Library\ImGui\imgui_widgets.cpp">
+      <Filter>Library\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Systems\CollisionSystem.cpp">
+      <Filter>Source Files\Systems</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resource\Shaders\DebugPrimitive.hlsl">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
