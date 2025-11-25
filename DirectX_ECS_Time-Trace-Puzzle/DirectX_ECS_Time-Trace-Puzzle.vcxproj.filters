@@ -129,6 +129,15 @@
     <ClInclude Include="Header\Core\Logger.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Header\Graphics\Texture.h">
+      <Filter>Header Files\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Core\ResourceManager.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Graphics\SpriteRenderer.h">
+      <Filter>Header Files\Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">
@@ -176,10 +185,22 @@
     <ClCompile Include="Source\Core\Input.cpp">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Core\ResourceManager.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\SpriteRenderer.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resource\Shaders\DebugPrimitive.hlsl">
+    <None Include="Resources\Shaders\DebugPrimitive.hlsl">
       <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Sprite.hlsl">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="Resources\resources.json">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -23,8 +23,8 @@
 namespace Config
 {
 	// ウィンドウ設定
-	static const int SCREEN_WIDTH = 1280;
-	static const int SCREEN_HEIGHT = 720;
+	static const int SCREEN_WIDTH = 960;
+	static const int SCREEN_HEIGHT = 540;
 	static const char* WINDOW_TITLE = "Time Trace Puzzle (DX11 + ECS)";
 
 	// レンダリング設定

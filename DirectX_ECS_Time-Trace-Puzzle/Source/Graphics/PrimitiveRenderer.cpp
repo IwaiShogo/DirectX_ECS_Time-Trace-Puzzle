@@ -43,7 +43,7 @@ void PrimitiveRenderer::Initialize()
 	UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG;
 
 	// Vertex Shader
-	HRESULT hr = D3DCompileFromFile(L"Resource/Shaders/DebugPrimitive.hlsl", nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0, &vsBlob, &errorBlob);
+	HRESULT hr = D3DCompileFromFile(L"Resources/Shaders/DebugPrimitive.hlsl", nullptr, nullptr, "VS", "vs_5_0", compileFlags, 0, &vsBlob, &errorBlob);
 	if (FAILED(hr))
 	{
 		if (errorBlob)OutputDebugStringA((char*)errorBlob->GetBufferPointer());
@@ -52,7 +52,7 @@ void PrimitiveRenderer::Initialize()
 	m_device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &m_vs);
 
 	// Pixel Shader
-	hr = D3DCompileFromFile(L"Resource/Shaders/DebugPrimitive.hlsl", nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0, &psBlob, &errorBlob);
+	hr = D3DCompileFromFile(L"Resources/Shaders/DebugPrimitive.hlsl", nullptr, nullptr, "PS", "ps_5_0", compileFlags, 0, &psBlob, &errorBlob);
 	if (FAILED(hr))
 	{
 		if (errorBlob)OutputDebugStringA((char*)errorBlob->GetBufferPointer());

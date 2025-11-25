@@ -33,29 +33,26 @@ void RenderSystem::Render(Registry& registry, const Context& context)
 	// 1. カメラ探索
 	XMMATRIX viewMatrix = XMMatrixIdentity();
 	XMMATRIX projMatrix = XMMatrixIdentity();
-	XMVECTOR eye = XMVectorSet(0, 0, -1, 0);
-	XMVECTOR lookDir = XMVectorSet(0, 0, 0, 0);
+	static XMFLOAT3 savedRotation = { 0, 0, 0 };
 	bool cameraFound = false;
 
 	registry.view<Camera, Transform>([&](Entity e, Camera& cam, Transform& trans)
 	{
 		if (cameraFound) return;
 
-		eye = XMLoadFloat3(&trans.position);
+		savedRotation = trans.rotation;
 
+		XMVECTOR eye = XMLoadFloat3(&trans.position);
 		// 回転行列を作成 (Pitch: X軸回転, Yaw: Y軸回転)
 		// Transform.rotation.x を Pitch(上下)、y を Yaw(左右) として使います
 		XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(trans.rotation.x, trans.rotation.y, 0.0f);
-
 		// 前方ベクトル (0, 0, 1) を回転させる
-		lookDir = XMVector3TransformCoord(XMVectorSet(0, 0, 1, 0), rotationMatrix);
-
+		XMVECTOR lookDir = XMVector3TransformCoord(XMVectorSet(0, 0, 1, 0), rotationMatrix);
 		// 上方向ベクトル (0, 1, 0) を回転させる
 		XMVECTOR upDir = XMVector3TransformCoord(XMVectorSet(0, 1, 0, 0), rotationMatrix);
 
 		// LookToLH: 位置、向き、上でビュー行列を作る
 		viewMatrix = XMMatrixLookToLH(eye, lookDir, upDir);
-
 		projMatrix = XMMatrixPerspectiveFovLH(cam.fov, cam.aspect, cam.nearZ, cam.farZ);
 		cameraFound = true;
 	});
@@ -120,20 +117,16 @@ void RenderSystem::Render(Registry& registry, const Context& context)
 		m_renderer->GetDeviceContext()->RSSetViewports(1, &gizmoViewport);
 
 		// C.ギズモ用のビュー行列
-		// カメラの位置からターゲットへのベクトルを計算
-		XMVECTOR dir = XMVectorSubtract(eye, lookDir);
+		XMMATRIX gizmoRotMatrix = XMMatrixRotationRollPitchYaw(savedRotation.x, savedRotation.y, 0.0f);
 
-		// 向きはそのまま、距離を一定に正規化して原点中心に配置
-		dir = XMVector3Normalize(dir) * 5.0f;
-
-		// ギズモカメラの位置 = 原点 + 方向ベクトル
-		XMVECTOR gizmoEye = dir;
+		// 2. ギズモカメラの位置計算
+		XMVECTOR offset = XMVector3TransformCoord(XMVectorSet(0, 0, -5.0f, 0), gizmoRotMatrix);
+		XMVECTOR gizmoEye = offset;
 		XMVECTOR gizmoTarget = XMVectorSet(0, 0, 0, 0);
-		XMVECTOR up = XMVectorSet(0, 1, 0, 0);
 
-		XMMATRIX gizmoView = XMMatrixLookAtLH(gizmoEye, gizmoTarget, up);
-
-		// ギズモ用のプロジェクション
+		// 上方向も回転させる
+		XMVECTOR gizmoUp = XMVector3TransformCoord(XMVectorSet(0, 1, 0, 0), gizmoRotMatrix);
+		XMMATRIX gizmoView = XMMatrixLookAtLH(gizmoEye, gizmoTarget, gizmoUp);
 		XMMATRIX gizmoProj = XMMatrixPerspectiveFovLH(XM_PIDIV4, 1.0f, 0.1f, 100.0f);
 
 		// D. ギズモ描画開始

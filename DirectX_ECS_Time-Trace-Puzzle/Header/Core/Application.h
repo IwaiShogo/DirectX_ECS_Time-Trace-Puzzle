@@ -28,6 +28,7 @@
 #include "ECS/ECS.h"
 #include "Scene/SceneManager.h"
 #include "Graphics/PrimitiveRenderer.h"
+#include "Graphics/SpriteRenderer.h"
 
 // ImGuiのヘッダ
 #include "imgui.h"
@@ -63,7 +64,8 @@ private:
 	ComPtr<ID3D11RenderTargetView>	m_renderTargetView;
 	ComPtr<ID3D11DepthStencilView>	m_depthStencilView;
 
-	std::unique_ptr<PrimitiveRenderer> m_primitiveRenderer = nullptr;
+	std::unique_ptr<PrimitiveRenderer>	m_primitiveRenderer;
+	std::unique_ptr<SpriteRenderer>		m_spriteRenderer;
 	Context m_appContext;
 
 	// シーンマネージャー

@@ -1,0 +1,10 @@
+{
+  "textures": {
+    "player": { "path": "Resources/Textures/test.png" },
+    "enemy": { "path": "Resources/Textures/test.png" },
+    "ground": { "path": "Resources/Textures/test.png" }
+  },
+  "models": {
+    "hero": { "path": "Resources/Models/hero.fbx" }
+  }
+}

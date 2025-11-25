@@ -21,6 +21,7 @@
 #include "Core/Application.h"
 #include "Core/Time.h"
 #include "Core/Input.h"
+#include "Core/ResourceManager.h"
 #include "main.h"
 #include <string>
 #include <stdexcept>
@@ -142,6 +143,14 @@ void Application::Initialize()
 
 	// 入力
 	Input::Initialize();
+
+	// マネージャー
+	ResourceManager::Instance().Initialize(m_device.Get());
+	ResourceManager::Instance().LoadManifest("Resources/resources.json");
+
+	// スプライトレンダラー作成
+	m_spriteRenderer = std::make_unique<SpriteRenderer>(m_device.Get(), m_context.Get());
+	m_spriteRenderer->Initialize();
 
 	// --- ImGui ---
 	IMGUI_CHECKVERSION();
@@ -431,6 +440,24 @@ void Application::Render()
 	{
 		m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	}
+
+	// 2D描画テスト
+	m_spriteRenderer->Begin();
+
+	auto tex = ResourceManager::Instance().GetTexture("player");
+	if (tex)
+	{
+		// （100, 100）の位置にそのままのサイズで描画
+		//m_spriteRenderer->Draw(tex.get(), 100.0f, 100.0f);
+
+		// （300, 100）に半透明の赤色で描画
+		m_spriteRenderer->Draw(tex.get(), 300.0f, 100.0f, { 1, 0, 0, 0.1f });
+	}
+	//m_spriteRenderer->End();
+
+	// 後始末
+	m_context->OMSetDepthStencilState(nullptr, 0);
+	m_context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 
 	// シーン描画
 	m_sceneManager.Render();
