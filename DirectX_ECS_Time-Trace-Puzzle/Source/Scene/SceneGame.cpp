@@ -93,6 +93,98 @@ void SceneGame::Initialize()
 		.add<Tag>("UI")
 		.add<Transform>(XMFLOAT3(50.0f, 50.0f, 0.0f))
 		.add<SpriteComponent>("test", 64.0f, 64.0f);
+
+	// tp [x] [y] [z]: プレイヤーをテレポート
+	Logger::RegisterCommand("tp", [this](std::vector<std::string> args) {
+		if (args.size() < 3) { Logger::LogWarning("Usage: tp [x] [y] [z]"); return; }
+
+		float x = std::stof(args[0]);
+		float y = std::stof(args[1]);
+		float z = std::stof(args[2]);
+
+		// Playerタグを持つEntityを探して移動
+		bool found = false;
+		m_world.getRegistry().view<Tag, Transform>([&](Entity e, Tag& tag, Transform& t) {
+			if (strcmp(tag.name, "Player") == 0) {
+				t.position = { x, y, z };
+				// 物理挙動をリセット（落下速度などを0にする）
+				if (m_world.getRegistry().has<Velocity>(e)) {
+					m_world.getRegistry().get<Velocity>(e).velocity = { 0, 0, 0 };
+				}
+				found = true;
+			}
+			});
+
+		if (found) Logger::Log("Teleported Player to (" + args[0] + ", " + args[1] + ", " + args[2] + ")");
+		else Logger::LogWarning("Player not found.");
+		});
+
+	// list: 現在の全エンティティを表示
+	Logger::RegisterCommand("list", [this](auto args) {
+		Logger::Log("--- Entity List ---");
+		m_world.getRegistry().view<Tag>([&](Entity e, Tag& tag) {
+			std::string msg = "ID:" + std::to_string(e) + " [" + tag.name + "]";
+			// 座標も表示してみる
+			if (m_world.getRegistry().has<Transform>(e)) {
+				auto& t = m_world.getRegistry().get<Transform>(e);
+				msg += " Pos(" + std::to_string((int)t.position.x) + "," +
+					std::to_string((int)t.position.y) + "," +
+					std::to_string((int)t.position.z) + ")";
+			}
+			Logger::Log(msg);
+			});
+		Logger::Log("-------------------");
+		});
+
+	// kill [id] / kill all: エンティティを削除
+	Logger::RegisterCommand("kill", [this](auto args) {
+		if (args.empty()) return;
+
+		if (args[0] == "all") {
+			// 全削除（危険ですがデバッグ用として）
+			// ※ループ中の削除は危険なのでIDリストを作ってから消す
+			std::vector<Entity> ids;
+			m_world.getRegistry().view<Tag>([&](Entity e, Tag& t) { ids.push_back(e); });
+			for (auto id : ids) m_world.getRegistry().destroy(id);
+			Logger::Log("Killed all entities.");
+		}
+		else {
+			// ID指定削除
+			Entity id = (Entity)std::stoi(args[0]);
+			if (m_world.getRegistry().has<Tag>(id)) {
+				m_world.getRegistry().destroy(id);
+				Logger::Log("Killed Entity ID: " + args[0]);
+			}
+			else {
+				Logger::LogWarning("Entity not found.");
+			}
+		}
+		});
+
+	// spawn [enemy/cube]: デバッグ生成
+	Logger::RegisterCommand("spawn", [this](auto args) {
+		if (args.empty()) return;
+
+		XMFLOAT3 pos = { 0, 5, 0 }; // 頭上にスポーン
+		// プレイヤーがいればその近くに
+		m_world.getRegistry().view<Tag, Transform>([&](auto, Tag& t, Transform& tr) {
+			if (strcmp(t.name, "Player") == 0) pos = tr.position;
+			});
+		pos.y += 3.0f;
+
+		if (args[0] == "enemy") {
+			m_world.create_entity()
+				.add<Tag>("Enemy")
+				.add<Transform>(pos)
+				.add<BoxCollider>(XMFLOAT3(1, 1, 1))
+				.add<MeshComponent>("hero"); // 仮モデル
+			Logger::Log("Spawned Enemy");
+		}
+		else if (args[0] == "sound") {
+			Prefab::CreateSoundEffect(m_world, "jump", pos);
+			Logger::Log("Spawned Sound");
+		}
+		});
 }
 
 void SceneGame::Finalize()

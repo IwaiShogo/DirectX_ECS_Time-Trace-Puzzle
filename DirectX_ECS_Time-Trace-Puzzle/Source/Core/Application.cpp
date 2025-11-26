@@ -243,6 +243,38 @@ void Application::Initialize()
 		else if (args[0] == "game") SceneManager::ChangeScene(SceneType::Game);
 		Logger::Log("Switching scene...");
 		});
+
+	// wireframe [on/off]: ワイヤーフレーム表示の切り替え
+	Logger::RegisterCommand("wireframe", [&](auto args) {
+		Context& ctx = m_sceneManager.GetContext();
+		if (args.empty()) {
+			// 引数なしならトグル
+			ctx.debug.wireframeMode = !ctx.debug.wireframeMode;
+		}
+		else {
+			ctx.debug.wireframeMode = (args[0] == "on" || args[0] == "1");
+		}
+		Logger::Log("Wireframe: " + std::string(ctx.debug.wireframeMode ? "ON" : "OFF"));
+		});
+
+	// quit: ゲーム終了
+	Logger::RegisterCommand("quit", [](auto args) {
+		PostQuitMessage(0);
+		});
+
+	// play [sound_key]: サウンド再生テスト
+	Logger::RegisterCommand("play", [](auto args) {
+		if (args.empty()) { Logger::LogWarning("Usage: play [sound_key]"); return; }
+		AudioManager::Instance().PlaySE(args[0]);
+		Logger::Log("Playing sound: " + args[0]);
+		});
+
+	// bgm [sound_key]: BGM変更
+	Logger::RegisterCommand("bgm", [](auto args) {
+		if (args.empty()) { Logger::LogWarning("Usage: bgm [sound_key]"); return; }
+		AudioManager::Instance().PlayBGM(args[0]);
+		Logger::Log("Changed BGM: " + args[0]);
+		});
 }
 
 // 全シーン共通のデバッグメニュー
