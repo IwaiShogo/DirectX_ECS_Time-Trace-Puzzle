@@ -26,10 +26,15 @@
 #include "Core/Context.h"
 #include "imgui.h"
 
+// Systems
 #include "Systems/RenderSystem.h"
 #include "Systems/MovementSystem.h"
 #include "Systems/CollisionSystem.h"
 #include "Systems/InputSystem.h"
+#include "Systems/SpriteRenderSystem.h"
+#include "Systems/ModelRenderSystem.h"
+#include "Systems/AudioSystem.h"
+#include "Systems/LifetimeSystem.h"
 
 /**
  * @enum	SceneType
@@ -62,9 +67,21 @@ public:
 	// 初期化（リソース読み込み等）
 	virtual void Initialize()
 	{
+		m_world.registerSystem<AudioSystem>();
+
 		if (m_context->renderer)
 		{
 			m_world.registerSystem<RenderSystem>(m_context->renderer);
+		}
+
+		if (m_context->spriteRenderer)
+		{
+			m_world.registerSystem<SpriteRenderSystem>(m_context->spriteRenderer);
+		}
+
+		if (m_context->modelRenderer)
+		{
+			m_world.registerSystem<ModelRenderSystem>(m_context->modelRenderer);
 		}
 	}
 
@@ -87,8 +104,9 @@ public:
 	virtual void OnInspector() {}
 
 protected:
-	World m_world;
-	Context* m_context = nullptr;
+	World		m_world;
+	Context*	m_context = nullptr;
+	Entity		m_selectedEntity = NullEntity;
 };
 
 #endif // !___ISCENE_H___

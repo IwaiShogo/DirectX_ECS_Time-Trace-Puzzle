@@ -22,6 +22,7 @@
 #include "Core/Time.h"
 #include "Core/Input.h"
 #include "Core/ResourceManager.h"
+#include "Core/AudioManager.h"
 #include "main.h"
 #include <string>
 #include <stdexcept>
@@ -33,10 +34,15 @@ Application::Application(HWND hwnd)
 
 Application::~Application()
 {
+#ifdef _DEBUG
 	// ImGui 終了処理
 	ImGui_ImplDX11_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
+#endif // _DEBUG
+
+	// オーディオ
+	AudioManager::Instance().Finalize();
 
 	// ComPtrを使用しているため、明示的なReleaseは不要
 }
@@ -144,14 +150,7 @@ void Application::Initialize()
 	// 入力
 	Input::Initialize();
 
-	// マネージャー
-	ResourceManager::Instance().Initialize(m_device.Get());
-	ResourceManager::Instance().LoadManifest("Resources/resources.json");
-
-	// スプライトレンダラー作成
-	m_spriteRenderer = std::make_unique<SpriteRenderer>(m_device.Get(), m_context.Get());
-	m_spriteRenderer->Initialize();
-
+#ifdef _DEBUG
 	// --- ImGui ---
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -175,18 +174,75 @@ void Application::Initialize()
 	// Win32 / DX11 バインディングの初期化
 	ImGui_ImplWin32_Init(m_hwnd);
 	ImGui_ImplDX11_Init(m_device.Get(), m_context.Get());
+#endif // _DEBUG
 
+	// マネージャー
+	ResourceManager::Instance().Initialize(m_device.Get());
+	AudioManager::Instance().Initialize();	// オーディオ初期化
+	ResourceManager::Instance().LoadManifest("Resources/resources.json");
+	ResourceManager::Instance().LoadAll();
+
+	// 3D描画作成
 	m_primitiveRenderer = std::make_unique<PrimitiveRenderer>(m_device.Get(), m_context.Get());
 	m_primitiveRenderer->Initialize();
 
+	// 2D描画作成
+	m_spriteRenderer = std::make_unique<SpriteRenderer>(m_device.Get(), m_context.Get());
+	m_spriteRenderer->Initialize();
+
+	// モデル描画作成
+	m_modelRenderer = std::make_unique<ModelRenderer>(m_device.Get(), m_context.Get());
+	m_modelRenderer->Initialize();
+
+	// ビルボードレンダラー作成
+	m_billboardRenderer = std::make_unique<BillboardRenderer>(m_device.Get(), m_context.Get());
+	m_billboardRenderer->Initialize();
+
 	Context context;
 	context.renderer = m_primitiveRenderer.get();
+	context.spriteRenderer = m_spriteRenderer.get();
+	context.modelRenderer = m_modelRenderer.get();
+	context.billboardRenderer = m_billboardRenderer.get();
 
 	// シーンマネージャ
 	m_sceneManager.SetContext(context);
 	m_appContext = context;
 	m_sceneManager.SetContext(m_appContext);
 	m_sceneManager.Initialize(SceneType::Title);
+
+	// --- コマンド登録 ---
+	// fps [value]: FPS制限変更
+	Logger::RegisterCommand("fps", [](auto args) {
+		if (args.empty()) return;
+		int fps = std::stoi(args[0]);
+		Time::SetFrameRate(fps);
+		Logger::Log("FPS limit set to " + std::to_string(fps));
+		});
+
+	// debug [grid/axis/collider] [0/1]: 表示切替
+	// ※ m_appContext へのアクセスが必要なので、ラムダ式でキャプチャするか、
+	//	 Applicationインスタンス経由でアクセスする必要があります。
+	//	 ここでは簡易的に static なポインタを用意するか、m_sceneManager経由で取得します。
+	Logger::RegisterCommand("debug", [&](auto args) {
+		if (args.size() < 2) { Logger::LogWarning("Usage: debug [grid/axis/col] [0/1]"); return; }
+
+		bool enable = (args[1] == "1" || args[1] == "on");
+		Context& ctx = m_sceneManager.GetContext(); // Applicationが持っているSceneManager
+
+		if (args[0] == "grid") ctx.debug.showGrid = enable;
+		else if (args[0] == "axis") ctx.debug.showAxis = enable;
+		else if (args[0] == "col") ctx.debug.showColliders = enable;
+
+		Logger::Log("Debug setting updated.");
+		});
+
+	// scene [title/game]: シーン遷移
+	Logger::RegisterCommand("scene", [&](auto args) {
+		if (args.empty()) return;
+		if (args[0] == "title") SceneManager::ChangeScene(SceneType::Title);
+		else if (args[0] == "game") SceneManager::ChangeScene(SceneType::Game);
+		Logger::Log("Switching scene...");
+		});
 }
 
 // 全シーン共通のデバッグメニュー
@@ -210,7 +266,7 @@ void Application::DrawDebugUI()
 		static float refresh_time = 0.0f;
 
 		// 高速更新しすぎると見にくいので少し間引く
-		if (refresh_time == 0.0f) refresh_time = ImGui::GetTime();
+		if (refresh_time == 0.0f) refresh_time = static_cast<float>(ImGui::GetTime());
 		while (refresh_time < ImGui::GetTime())
 		{
 			values[values_offset] = ImGui::GetIO().Framerate;
@@ -236,6 +292,8 @@ void Application::DrawDebugUI()
 		ImGui::Separator();
 		ImGui::Checkbox("Show Grid", &ctx.debug.showGrid);
 		ImGui::Checkbox("Show Axis", &ctx.debug.showAxis);
+		ImGui::Checkbox("Show Sound Events", &ctx.debug.showSoundLocation);
+		ImGui::Checkbox("Enable Mouse Picking", &ctx.debug.enableMousePicking);
 
 		ImGui::Separator();
 		ImGui::Checkbox("Debug Camera Mode", &ctx.debug.useDebugCamera);
@@ -401,7 +459,10 @@ void Application::Update()
 
 	// 入力
 	Input::Update();
+	// オーディオ
+	AudioManager::Instance().Update();
 
+#ifdef _DEBUG
 	// --- ImGui ---
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
@@ -409,9 +470,12 @@ void Application::Update()
 
 	// デバッグUI
 	DrawDebugUI();
+	ResourceManager::Instance().OnInspector();
+	AudioManager::Instance().OnInspector();
 
 	// ログウィンドウの描画
 	Logger::Draw("Debug Logger");
+#endif // _DEBUG
 
 	// シーン更新
 	m_sceneManager.Update();
@@ -441,27 +505,14 @@ void Application::Render()
 		m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	}
 
-	// 2D描画テスト
-	m_spriteRenderer->Begin();
-
-	auto tex = ResourceManager::Instance().GetTexture("player");
-	if (tex)
-	{
-		// （100, 100）の位置にそのままのサイズで描画
-		//m_spriteRenderer->Draw(tex.get(), 100.0f, 100.0f);
-
-		// （300, 100）に半透明の赤色で描画
-		m_spriteRenderer->Draw(tex.get(), 300.0f, 100.0f, { 1, 0, 0, 0.1f });
-	}
-	//m_spriteRenderer->End();
+	// シーン描画
+	m_sceneManager.Render();
 
 	// 後始末
 	m_context->OMSetDepthStencilState(nullptr, 0);
 	m_context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 
-	// シーン描画
-	m_sceneManager.Render();
-
+#ifdef _DEBUG
 	// --- ImGui ---
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -472,6 +523,7 @@ void Application::Render()
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
 	}
+#endif // _DEBUG
 
 	m_swapChain->Present(Config::VSYNC_ENABLED ? 1: 0, 0);
 }

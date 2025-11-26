@@ -1,10 +1,13 @@
 {
   "textures": {
-    "player": { "path": "Resources/Textures/test.png" },
-    "enemy": { "path": "Resources/Textures/test.png" },
+    "test": { "path": "Resources/Textures/test.png" },
+    "star": { "path": "Resources/Textures/Star.png" },
     "ground": { "path": "Resources/Textures/test.png" }
   },
   "models": {
-    "hero": { "path": "Resources/Models/hero.fbx" }
+    "hero": { "path": "Resources/Models/dousakakuninn11.fbx" }
+  },
+  "sounds": {
+    "jump": { "path": "Resources/Sounds/jump.wav" }
   }
 }

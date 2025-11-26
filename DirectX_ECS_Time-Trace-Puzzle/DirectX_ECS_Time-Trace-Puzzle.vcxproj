@@ -103,14 +103,14 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(ProjectDir)Header\;$(ProjectDir)Library\ImGui\;$(ProjectDir)Library\DirectXTex\;$(ProjectDir)Library\nlohmann\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Header\;$(ProjectDir)Library\ImGui\;$(ProjectDir)Library\DirectXTex\;$(ProjectDir)Library\nlohmann\;$(ProjectDir)Library\Assimp\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex;$(ProjectDir)Library\Assimp\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>DirectXTex.lib;assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -122,25 +122,31 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(ProjectDir)Header\;$(ProjectDir)Library\ImGui\;$(ProjectDir)Library\DirectXTex\;$(ProjectDir)Library\nlohmann\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Header\;$(ProjectDir)Library\ImGui\;$(ProjectDir)Library\DirectXTex\;$(ProjectDir)Library\nlohmann\;$(ProjectDir)Library\Assimp\include\</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex;$(ProjectDir)Library\Assimp\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>x64\Release\DirectXTex.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Header\Audio\Sound.h" />
     <ClInclude Include="Header\Components\Components.h" />
     <ClInclude Include="Header\Core\Application.h" />
+    <ClInclude Include="Header\Core\AudioManager.h" />
     <ClInclude Include="Header\Core\Context.h" />
     <ClInclude Include="Header\Core\Input.h" />
     <ClInclude Include="Header\Core\Logger.h" />
+    <ClInclude Include="Header\Core\Prefab.h" />
     <ClInclude Include="Header\Core\ResourceManager.h" />
     <ClInclude Include="Header\Core\Time.h" />
     <ClInclude Include="Header\ECS\ECS.h" />
+    <ClInclude Include="Header\Graphics\BillboardRenderer.h" />
+    <ClInclude Include="Header\Graphics\Model.h" />
+    <ClInclude Include="Header\Graphics\ModelRenderer.h" />
     <ClInclude Include="Header\Graphics\PrimitiveRenderer.h" />
     <ClInclude Include="Header\Graphics\SpriteRenderer.h" />
     <ClInclude Include="Header\Graphics\Texture.h" />
@@ -149,12 +155,18 @@
     <ClInclude Include="Header\Scene\SceneGame.h" />
     <ClInclude Include="Header\Scene\SceneManager.h" />
     <ClInclude Include="Header\Scene\SceneTitle.h" />
+    <ClInclude Include="Header\Systems\AudioSystem.h" />
+    <ClInclude Include="Header\Systems\BillboardSystem.h" />
     <ClInclude Include="Header\Systems\CollisionSystem.h" />
     <ClInclude Include="Header\Systems\InputSystem.h" />
+    <ClInclude Include="Header\Systems\LifetimeSystem.h" />
+    <ClInclude Include="Header\Systems\ModelRenderSystem.h" />
     <ClInclude Include="Header\Systems\MovementSystem.h" />
     <ClInclude Include="Header\Systems\RenderSystem.h" />
+    <ClInclude Include="Header\Systems\SpriteRenderSystem.h" />
     <ClInclude Include="Library\ImGui\imconfig.h" />
     <ClInclude Include="Library\ImGui\imgui.h" />
+    <ClInclude Include="Library\ImGui\ImGuizmo.h" />
     <ClInclude Include="Library\ImGui\imgui_impl_dx11.h" />
     <ClInclude Include="Library\ImGui\imgui_impl_win32.h" />
     <ClInclude Include="Library\ImGui\imgui_internal.h" />
@@ -164,6 +176,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Library\ImGui\imgui.cpp" />
+    <ClCompile Include="Library\ImGui\ImGuizmo.cpp" />
     <ClCompile Include="Library\ImGui\imgui_demo.cpp" />
     <ClCompile Include="Library\ImGui\imgui_draw.cpp" />
     <ClCompile Include="Library\ImGui\imgui_impl_dx11.cpp" />
@@ -171,8 +184,11 @@
     <ClCompile Include="Library\ImGui\imgui_tables.cpp" />
     <ClCompile Include="Library\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Core\Application.cpp" />
+    <ClCompile Include="Source\Core\AudioManager.cpp" />
     <ClCompile Include="Source\Core\Input.cpp" />
     <ClCompile Include="Source\Core\ResourceManager.cpp" />
+    <ClCompile Include="Source\Graphics\BillboardRenderer.cpp" />
+    <ClCompile Include="Source\Graphics\ModelRenderer.cpp" />
     <ClCompile Include="Source\Graphics\PrimitiveRenderer.cpp" />
     <ClCompile Include="Source\Graphics\SpriteRenderer.cpp" />
     <ClCompile Include="Source\main.cpp" />
@@ -187,6 +203,20 @@
       <FileType>Document</FileType>
     </None>
     <None Include="Resources\Shaders\Sprite.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Shaders\Standard.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Shaders\Billboard.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

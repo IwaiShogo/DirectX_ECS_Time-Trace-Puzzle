@@ -26,6 +26,13 @@
 
 using namespace DirectX;
 
+// 親子関係
+struct Relationship
+{
+	Entity parent = NullEntity;
+	std::vector<Entity> children;
+};
+
 /**
  * @struct	Transform
  * @brief	位置・回転・スケール
@@ -127,6 +134,95 @@ struct GridMoveState
 
 	GridMoveState(float speed = 4.0f)
 		: isMoving(false), startPos(0, 0, 0), targetPos(0, 0, 0), progress(0.0f), moveSpeed(speed) {}
+};
+
+/**
+ * @struct	SpriteComponent
+ * @brief	2D描画
+ */
+struct SpriteComponent
+{
+	std::string textureKey;	// ResourceManagerで使うキー
+	float width, height;	// 描画サイズ（ピクセル）
+	XMFLOAT4 color;			// 色と透明度
+	XMFLOAT2 pivot;			// 中心点（0.0 ~ 1.0）デフォルトは左上（0, 0）
+	
+	SpriteComponent(const std::string& key, float w, float h, const XMFLOAT4& c = { 1, 1, 1, 1 }, const XMFLOAT2& p = { 0, 0 })
+		: textureKey(key), width(w), height(h), color(c), pivot(p) {}
+};
+
+/**
+ * @struct	MeshComponent
+ * @brief	モデル描画
+ */
+struct MeshComponent
+{
+	std::string modelKey;	// ResourceManagerのキー
+	XMFLOAT3 scaleOffset;	// モデル固有のスケール補正（アセットが巨大/極小な場合用）
+	XMFLOAT4 color;			// マテリアルカラー乗算用
+
+	MeshComponent(const std::string& key,
+				  const XMFLOAT3& scale = { 1.0f, 1.0f, 1.0f },
+				  const XMFLOAT4& c = { 1.0f, 1.0f, 1.0f, 1.0f})
+		: modelKey(key), scaleOffset(scale), color(c) {}
+};
+
+/**
+ * @struct	Audiosource
+ * @brief	音源（鳴らす側）
+ */
+struct AudioSource
+{
+	std::string soundKey;	// ResourceManagerのキー
+	float volume;			// 基本音量
+	float range;			// 音が聞こえる最大距離（3Dサウンド用）
+	bool isLoop;			// ループするか
+	bool playOnAwake;		// 生成時に即再生するか
+
+	// 内部状態管理用
+	bool isPlaying = false;
+
+	AudioSource(const std::string& key,
+				float vol = 1.0f,
+				float r = 20.0f,
+				bool loop = false,
+				bool awake = false)
+		: soundKey(key), volume(vol), range(r), isLoop(loop), playOnAwake(awake) {}
+};
+
+/**
+ * @struct	AudioListener
+ * @brief	聞く側（通常はカメラかプレイヤーに1つだけつける）
+ */
+struct AudioListener
+{
+	// データは不要、タグとして機能する。
+};
+
+/**
+ * @struct	Lifetime
+ * @brief	寿命（秒）
+ */
+struct Lifetime
+{
+	float time;	// 残り時間
+
+	Lifetime(float t)
+		: time(t) {}
+};
+
+/**
+ * @struct	BillboardComponent
+ * @brief	ビルボード
+ */
+struct BillboardComponent
+{
+	std::string textureKey;
+	XMFLOAT2 size;	// 幅、高さ
+	XMFLOAT4 color;
+
+	BillboardComponent(const std::string& key, float w = 1.0f, float h = 1.0f, const XMFLOAT4& c = { 1, 1, 1, 1 })
+		: textureKey(key), size(w, h), color(c) {}
 };
 
 #endif // !___COMPONENTS_H___

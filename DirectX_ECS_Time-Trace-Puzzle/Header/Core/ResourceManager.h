@@ -26,7 +26,13 @@
 #include <memory>
 #include <d3d11.h>
 #include "Graphics/Texture.h"
+#include "Graphics/Model.h"
+#include "Audio/Sound.h"
+
 #include "json.hpp"
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 class ResourceManager
 {
@@ -44,23 +50,44 @@ public:
 	// マニフェスト（JSON）を読み込んでパスを登録
 	void LoadManifest(const std::string& jsonPath);
 
-	// キー名からテクスチャを取得（"player"など）
+	void LoadAll();
+
+	// テクスチャを取得
 	std::shared_ptr<Texture> GetTexture(const std::string& key);
+	// モデル取得
+	std::shared_ptr<Model> GetModel(const std::string& key);
+	// 音声取得
+	std::shared_ptr<Sound> GetSound(const std::string& key);
+
+	// デバッグ描画
+	void OnInspector();
 
 private:
 	// 内部ロード関数（パス指定）
 	std::shared_ptr<Texture> LoadTextureFromFile(const std::string& filepath);
+	std::shared_ptr<Model> LoadModelFromFile(const std::string& filepath);
+	std::shared_ptr<Sound> LoadWav(const std::string& filepath);
+
+	// Assimpのノードを再帰的に処理する関数
+	void ProcessNode(aiNode* node, const aiScene* scene, std::shared_ptr<Model> model, const std::string& directory);
+	Mesh ProcessMesh(aiMesh* mesh, const aiScene* scene, const std::string& directory);
 
 	ResourceManager() = default;	// コンストラクタ隠蔽
 	~ResourceManager() = default;
 
 	ID3D11Device* m_device = nullptr;
 
-	// キー名 -> ファイルパス の辞書
+	// テクスチャ用キャッシュ
 	std::map<std::string, std::string> m_texturePaths;
-
-	// ファイルパス -> 実データ のキャッシュ
 	std::map<std::string, std::shared_ptr<Texture>> m_textures;
+
+	// モデル用キャッシュ
+	std::map<std::string, std::string> m_modelPaths;
+	std::map<std::string, std::shared_ptr<Model>> m_models;
+
+	// サウンド用キャッシュ
+	std::map<std::string, std::string> m_soundPaths;
+	std::map<std::string, std::shared_ptr<Sound>> m_sounds;
 };
 
 #endif // !___RESOURCE_MANAGER_H___

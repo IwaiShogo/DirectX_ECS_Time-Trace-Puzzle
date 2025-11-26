@@ -18,6 +18,7 @@
  *********************************************************************/
 
 // ===== インクルード =====
+#define NOMINMAX
 #include "Systems/CollisionSystem.h"
 #include <cmath>
 #include <iostream>
@@ -69,6 +70,83 @@ void CollisionSystem::Update(Registry& registry)
 			}
 		}
 	}
+}
+
+// レイとAABBの交差判定 (Slabs method)
+bool IntersectRayAABB(const XMFLOAT3& origin, const XMFLOAT3& dir, const XMFLOAT3& boxPos, const BoxCollider& box, float& t) {
+	// AABBの最小・最大点
+	float minX = boxPos.x - box.size.x * 0.5f;
+	float maxX = boxPos.x + box.size.x * 0.5f;
+	float minY = boxPos.y - box.size.y * 0.5f;
+	float maxY = boxPos.y + box.size.y * 0.5f;
+	float minZ = boxPos.z - box.size.z * 0.5f;
+	float maxZ = boxPos.z + box.size.z * 0.5f;
+
+	float tmin = 0.0f;
+	float tmax = 10000.0f;
+
+	// X軸
+	if (abs(dir.x) < 1e-6f) {
+		if (origin.x < minX || origin.x > maxX) return false;
+	}
+	else {
+		float ood = 1.0f / dir.x;
+		float t1 = (minX - origin.x) * ood;
+		float t2 = (maxX - origin.x) * ood;
+		if (t1 > t2) std::swap(t1, t2);
+		tmin = std::max(tmin, t1);
+		tmax = std::min(tmax, t2);
+		if (tmin > tmax) return false;
+	}
+
+	// Y軸
+	if (abs(dir.y) < 1e-6f) {
+		if (origin.y < minY || origin.y > maxY) return false;
+	}
+	else {
+		float ood = 1.0f / dir.y;
+		float t1 = (minY - origin.y) * ood;
+		float t2 = (maxY - origin.y) * ood;
+		if (t1 > t2) std::swap(t1, t2);
+		tmin = std::max(tmin, t1);
+		tmax = std::min(tmax, t2);
+		if (tmin > tmax) return false;
+	}
+
+	// Z軸
+	if (abs(dir.z) < 1e-6f) {
+		if (origin.z < minZ || origin.z > maxZ) return false;
+	}
+	else {
+		float ood = 1.0f / dir.z;
+		float t1 = (minZ - origin.z) * ood;
+		float t2 = (maxZ - origin.z) * ood;
+		if (t1 > t2) std::swap(t1, t2);
+		tmin = std::max(tmin, t1);
+		tmax = std::min(tmax, t2);
+		if (tmin > tmax) return false;
+	}
+
+	t = tmin;
+	return true;
+}
+
+Entity CollisionSystem::Raycast(Registry& registry, const XMFLOAT3& rayOrigin, const XMFLOAT3& rayDir, float& outDist) {
+	Entity closestEntity = NullEntity;
+	float closestDist = FLT_MAX;
+
+	registry.view<Transform, BoxCollider>([&](Entity e, Transform& t, BoxCollider& b) {
+		float dist = 0.0f;
+		if (IntersectRayAABB(rayOrigin, rayDir, t.position, b, dist)) {
+			if (dist < closestDist && dist > 0.0f) {
+				closestDist = dist;
+				closestEntity = e;
+			}
+		}
+		});
+
+	outDist = closestDist;
+	return closestEntity;
 }
 
 // AABB判定ロジック

@@ -29,6 +29,8 @@
 #include "Scene/SceneManager.h"
 #include "Graphics/PrimitiveRenderer.h"
 #include "Graphics/SpriteRenderer.h"
+#include "Graphics/ModelRenderer.h"
+#include "Graphics/BillboardRenderer.h"
 
 // ImGuiのヘッダ
 #include "imgui.h"
@@ -66,6 +68,8 @@ private:
 
 	std::unique_ptr<PrimitiveRenderer>	m_primitiveRenderer;
 	std::unique_ptr<SpriteRenderer>		m_spriteRenderer;
+	std::unique_ptr<ModelRenderer>		m_modelRenderer;
+	std::unique_ptr<BillboardRenderer>	m_billboardRenderer;
 	Context m_appContext;
 
 	// シーンマネージャー

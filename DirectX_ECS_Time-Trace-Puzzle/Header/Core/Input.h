@@ -88,10 +88,12 @@ public:
 
 	// マウスの右ボタン
 	static bool GetMouseRightButton();
+	// マウスの左ボタン
+	static bool GetMouseLeftButton();
 
-private:
 	static bool GetKeyDown(int keyCode);	// キーボード用のDown判定ヘルパー
 
+private:
 	// ボタンのマッピング用ヘルパー
 	static int GetXInputButtonMask(Button button);
 	static int GetKeyboardKey(Button button);
@@ -117,6 +119,10 @@ private:
 	inline static POINT s_prevMousePos = {};
 	inline static float s_mouseDeltaX = 0.0f;
 	inline static float s_mouseDeltaY = 0.0f;
+
+	// キーボード状態保存用
+	inline static BYTE s_keyState[256] = {};	// 現在
+	inline static BYTE s_oldKeyState[256] = {};	// 1フレーム
 };
 
 #endif // !___INPUT_H___

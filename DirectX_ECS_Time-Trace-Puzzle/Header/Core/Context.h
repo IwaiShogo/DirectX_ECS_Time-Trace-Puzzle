@@ -22,25 +22,44 @@
 
 // ===== 前方宣言 =====
 class PrimitiveRenderer;
+class SpriteRenderer;
+class ModelRenderer;
+class BillboardRenderer;
 // class InputManager;
 // class AudioManager;
 
 //  デバッグ設定（全シーン共有）
 struct DebugSettings
 {
-	bool showFps = true;			// FPS表示
-	bool showColliders = true;		// 当たり判定（Box）表示
-	bool showDemoWindow = false;	// ImGuiデモ画面
-	bool pauseGame = false;			// 一時停止
-	bool wireframeMode = true;		// true: 線、false: 面
-	bool showGrid = true;			// グリッド線
-	bool showAxis = true;			// 座標軸
-	bool useDebugCamera = false;	// デバッグカメラ
+	// ビルド構成によってデフォルト値を切り替える定数
+#ifdef _DEBUG
+	static constexpr bool DefaultOn = true;	 // Debug時は True
+#else
+	static constexpr bool DefaultOn = false; // Release時は False
+#endif
+
+	// 各フラグを定数で初期化
+	bool showFps = DefaultOn;
+	bool showGrid = DefaultOn;
+	bool showAxis = DefaultOn;
+	bool showColliders = DefaultOn;
+	bool showSoundLocation = DefaultOn;
+	bool enableMousePicking = DefaultOn;
+
+	// 以下の設定はDebug時でも最初はOFFにしておくのが一般的（お好みで DefaultOn にしてもOK）
+	bool useDebugCamera = false;
+	bool wireframeMode = false;
+	bool showDemoWindow = false;
+	bool pauseGame = false;
 };
 
 struct Context
 {
-	PrimitiveRenderer* renderer = nullptr;
+	PrimitiveRenderer*	renderer = nullptr; 
+	SpriteRenderer*		spriteRenderer = nullptr;
+	ModelRenderer*		modelRenderer = nullptr;
+	BillboardRenderer*	billboardRenderer = nullptr;
+
 	DebugSettings debug;
 };
 

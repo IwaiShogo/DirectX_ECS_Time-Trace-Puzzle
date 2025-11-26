@@ -19,6 +19,9 @@
 
  // ===== インクルード =====
 #include "Systems/RenderSystem.h"
+#include "Core/AudioManager.h"
+#include "Graphics/SpriteRenderer.h"
+#include "Graphics/BillboardRenderer.h"
 
 using namespace DirectX;
 
@@ -82,6 +85,43 @@ void RenderSystem::Render(Registry& registry, const Context& context)
 
 			m_renderer->DrawBox(trans.position, box.size, color);
 		});
+	}
+
+	// -------------------------------------------------------
+	// 音源の可視化 (Billboard版)
+	// -------------------------------------------------------
+	if (context.debug.showSoundLocation && context.billboardRenderer) {
+
+		// ビルボード描画開始 (カメラ行列を渡す)
+		context.billboardRenderer->Begin(viewMatrix, projMatrix);
+
+		// アイコン画像を取得 (assets.json または LoadTexture で指定したキー)
+		// ※とりあえず "player" か、用意した "icon_sound" を指定
+		auto iconTex = ResourceManager::Instance().GetTexture("icon_sound");
+
+		// 画像がなければ "player" などで代用
+		if (!iconTex) iconTex = ResourceManager::Instance().GetTexture("star");
+
+		if (iconTex) {
+			// 記録されている音イベントをループ
+			for (const auto& evt : AudioManager::Instance().GetSoundEvents()) {
+
+				// ビルボードを描画
+				// 位置: evt.position
+				// サイズ: 1.0f x 1.0f (3D空間での1メートル四方)
+				// 色: 赤っぽくして目立たせる
+				context.billboardRenderer->Draw(
+					iconTex.get(),
+					evt.position,
+					1.0f, 1.0f,
+					{ 1.0f, 0.5f, 0.5f, 1.0f }
+				);
+			}
+		}
+
+		// ステートの後始末（深度書き込みなどを元に戻す必要がある場合）
+		// BillboardRendererは半透明(Blend)を使うので、最後にBlendStateを切ると安全です
+		m_renderer->GetDeviceContext()->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 	}
 
 	// ------------------------------------------------------------

@@ -33,6 +33,10 @@ void Input::Initialize()
 
 void Input::Update()
 {
+	// キーボード状態の更新
+	memcpy(s_oldKeyState, s_keyState, sizeof(s_keyState));
+	GetKeyboardState(s_keyState);
+
 	// 1. 現在の状態を過去に保存
 	s_oldState = s_state;
 
@@ -150,6 +154,24 @@ float Input::GetMouseDeltaY()
 bool Input::GetMouseRightButton()
 {
 	return (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+}
+
+bool Input::GetMouseLeftButton()
+{
+	return (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+}
+
+bool Input::GetKeyDown(int keyCode)
+{
+	// 配列買い参照防止
+	if (keyCode < 0 || keyCode >= 256) return false;
+
+	// 最上位ビットが1なら押されている
+	bool isDown = (s_keyState[keyCode] & 0x80) != 0;
+	bool wasDown = (s_oldKeyState[keyCode] & 0x80) != 0;
+
+	// 今回押されていて、前回押されていなければtrue
+	return isDown && !wasDown;
 }
 
 // ----------------------------------------------------------------------

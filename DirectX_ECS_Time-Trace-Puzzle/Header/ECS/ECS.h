@@ -148,6 +148,8 @@ public:
 class Registry
 {
 	Entity nextEntity = 1;
+	// 再利用可能なIDのリスト
+	std::vector<Entity> freeIds;
 	std::vector<std::unique_ptr<IPool>> pools;
 
 	// 型Tに対応するプールを取得（無ければ作成）
@@ -170,6 +172,14 @@ public:
 	// Entity作成
 	Entity create()
 	{
+		// 再利用できるIDがあればそれを使う
+		if (!freeIds.empty())
+		{
+			Entity id = freeIds.back();
+			freeIds.pop_back();
+			return id;
+		}
+		// 無ければ新規発行
 		return nextEntity++;
 	}
 
@@ -199,6 +209,19 @@ public:
 	void remove(Entity entity)
 	{
 		getPool<T>().remove(entity);
+	}
+
+	void destroy(Entity entity)
+	{
+		for (auto& pool : pools)
+		{
+			if (pool)
+			{
+				pool->remove(entity);
+			}
+		}
+
+		freeIds.push_back(entity);
 	}
 
 	// ============================================================

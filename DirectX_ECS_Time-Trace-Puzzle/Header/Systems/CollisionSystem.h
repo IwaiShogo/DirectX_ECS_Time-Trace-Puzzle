@@ -32,6 +32,17 @@ public:
 
 	void Update(Registry& registry) override;
 
+	/**
+	 * @brief	レイキャスト判定
+	 * @param	[in] registry	レジストリ
+	 * @param	[in] rayOrigin	開始点
+	 * @param	[in] rayDir		方向（正規化済み）
+	 * @param	[in] outDist	衝突距離
+	 * @return	
+	 * @note	（省略可）
+	 */
+	static Entity Raycast(Registry& registry, const XMFLOAT3& rayOrigin, const XMFLOAT3& rayDir, float& outDist);
+
 private:
 	// AABB同士の交差判定関数
 	bool CheckAABB(	const XMFLOAT3& posA, const BoxCollider& boxA,

@@ -23,6 +23,8 @@
 // ===== インクルード =====
 #include "ECS/ECS.h"
 #include "Graphics/PrimitiveRenderer.h"
+#include "Graphics/ModelRenderer.h"
+#include "Core/ResourceManager.h"
 #include "Components/Components.h"
 
 class RenderSystem
@@ -35,6 +37,31 @@ public:
 	}
 
 	void Render(Registry& registry, const Context& context) override;
+
+	// 3D座標 -> 2Dスクリーン座標への変換
+	// 戻り値: スクリーン座標 (x, y)。zは深度(0-1)。
+	// 画面外なら false を返すような判定も可能ですが今回は座標のみ計算。
+	static DirectX::XMFLOAT3 WorldToScreen(
+		const DirectX::XMFLOAT3& worldPos,
+		const DirectX::XMMATRIX& view,
+		const DirectX::XMMATRIX& proj,
+		float screenW, float screenH)
+	{
+		XMVECTOR vWorld = XMLoadFloat3(&worldPos);
+
+		// 座標変換 (World -> View -> Clip)
+		XMVECTOR vClip = XMVector3TransformCoord(vWorld, view);
+		vClip = XMVector3TransformCoord(vClip, proj);
+
+		XMFLOAT3 clip;
+		XMStoreFloat3(&clip, vClip);
+
+		// NDC (-1~1) -> Screen (0~W, 0~H)
+		float screenX = (clip.x + 1.0f) * 0.5f * screenW;
+		float screenY = (1.0f - clip.y) * 0.5f * screenH; // Yは反転
+
+		return XMFLOAT3(screenX, screenY, clip.z);
+	}
 
 private:
 	PrimitiveRenderer* m_renderer;
