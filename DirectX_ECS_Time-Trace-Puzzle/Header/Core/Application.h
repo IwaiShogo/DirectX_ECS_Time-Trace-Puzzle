@@ -49,7 +49,6 @@ public:
 	~Application();
 
 	void Initialize();
-	void DrawDebugUI();
 	void Run();	// 1フレームの処理（Update + Render）
 
 private:

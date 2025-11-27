@@ -25,47 +25,78 @@
 
 void CollisionSystem::Update(Registry& registry)
 {
-	// 対象となるEntityのグループを取得
-	std::vector<Entity> entities;
-	std::vector<Transform*> transforms;
-	std::vector<BoxCollider*> colliders;
+	// 対象となるEntityの情報を集める
+	struct ColliderData {
+		Entity entity;
+		XMFLOAT3 globalPosition; // ワールド座標
+		XMFLOAT3 globalScale;	 // ワールドスケール
+		BoxCollider* collider;
+	};
+	std::vector<ColliderData> colliders;
 
 	registry.view<Transform, BoxCollider>([&](Entity e, Transform& t, BoxCollider& b) {
-		entities.push_back(e);
-		transforms.push_back(&t);
-		colliders.push_back(&b);
-	});
+		// ★ここが修正ポイント
+		// worldMatrix から「ワールド座標」と「ワールドスケール」を取り出す
+		XMVECTOR scale, rot, pos;
+		XMMatrixDecompose(&scale, &rot, &pos, t.worldMatrix);
 
-	size_t count = entities.size();
-	if (count < 2) return;	// 相手がいなければ判定不要
+		XMFLOAT3 gPos, gScale;
+		XMStoreFloat3(&gPos, pos);
+		XMStoreFloat3(&gScale, scale);
 
-	// 総当たり判定（0(N^2)）
+		colliders.push_back({ e, gPos, gScale, &b });
+		});
+
+	size_t count = colliders.size();
+	if (count < 2) return;
+
+	// 総当たり判定
 	for (size_t i = 0; i < count; ++i)
 	{
 		for (size_t j = i + 1; j < count; ++j)
 		{
-			// 判定実行
-			if (CheckAABB(transforms[i]->position, *colliders[i],
-						  transforms[j]->position, *colliders[j]))
+			// 判定実行 (抽出したワールド座標を使う)
+			// ※スケールも考慮して判定サイズを変えるとなお良いです
+
+			// スケール考慮版のボックスサイズを計算
+			BoxCollider scaledBoxA = *colliders[i].collider;
+			scaledBoxA.size.x *= colliders[i].globalScale.x;
+			scaledBoxA.size.y *= colliders[i].globalScale.y;
+			scaledBoxA.size.z *= colliders[i].globalScale.z;
+
+			BoxCollider scaledBoxB = *colliders[j].collider;
+			scaledBoxB.size.x *= colliders[j].globalScale.x;
+			scaledBoxB.size.y *= colliders[j].globalScale.y;
+			scaledBoxB.size.z *= colliders[j].globalScale.z;
+
+			if (CheckAABB(colliders[i].globalPosition, scaledBoxA,
+						  colliders[j].globalPosition, scaledBoxB))
 			{
-				// --- 衝突時の処理 ---
-				Entity entA = entities[i];
-				Entity entB = entities[j];
+				// 1. Entity IDを取得
+				Entity entA = colliders[i].entity;
+				Entity entB = colliders[j].entity;
 
-				bool isPlayerA = registry.has<Tag>(entA) && strcmp(registry.get<Tag>(entA).name, "Player") == 0;
-				bool isEnemyA = registry.has<Tag>(entA) && strcmp(registry.get<Tag>(entA).name, "Enemy") == 0;
+				// 2. Tagコンポーネントを確認して正体を判別
+				// (Tagを持っていない場合のエラー回避のため has<Tag> をチェック)
+				bool isPlayerA = registry.has<Tag>(entA) && registry.get<Tag>(entA).name == "Player";
+				bool isEnemyA = registry.has<Tag>(entA) && registry.get<Tag>(entA).name == "Enemy";
 
-				bool isPlayerB = registry.has<Tag>(entB) && strcmp(registry.get<Tag>(entB).name, "Player") == 0;
-				bool isEnemyB = registry.has<Tag>(entB) && strcmp(registry.get<Tag>(entB).name, "Enemy") == 0;
+				bool isPlayerB = registry.has<Tag>(entB) && registry.get<Tag>(entB).name == "Player";
+				bool isEnemyB = registry.has<Tag>(entB) && registry.get<Tag>(entB).name == "Enemy";
 
-				// プレイヤーと敵が当たったら
+				// 3. 「プレイヤー」と「敵」の衝突の場合
 				if ((isPlayerA && isEnemyB) || (isPlayerB && isEnemyA))
 				{
-					// ここにゲームオーバーなどを書く
-					if (isPlayerA) colliders[i]->size = XMFLOAT3(0.5f, 0.5f, 0.5f);
-					if (isPlayerB) colliders[j]->size = XMFLOAT3(0.5f, 0.5f, 0.5f);
-
 					Logger::LogError("Player Hit Enemy!");
+
+					// プレイヤーの方を小さくするリアクション
+					// colliders[i].collider はポインタなので -> でアクセスします
+					if (isPlayerA) {
+						colliders[i].collider->size = XMFLOAT3(0.5f, 0.5f, 0.5f);
+					}
+					if (isPlayerB) {
+						colliders[j].collider->size = XMFLOAT3(0.5f, 0.5f, 0.5f);
+					}
 				}
 			}
 		}

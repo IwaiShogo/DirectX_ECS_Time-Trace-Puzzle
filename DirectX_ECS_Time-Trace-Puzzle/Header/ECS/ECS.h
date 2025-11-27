@@ -361,8 +361,10 @@ public:
 	// デバッグ用にシステムリストを取得
 	const std::vector<std::unique_ptr<ISystem>>& getSystems() const { return systems; }
 
+	
 	// Registryへの直接アクセスが必要な場合
 	Registry& getRegistry() { return registry; }
+	const Registry& getRegistry() const { return registry; }
 };
 
 #endif // !___ECS_H___

@@ -70,15 +70,18 @@ public:
 				auto model = ResourceManager::Instance().GetModel(m.modelKey);
 				if (model)
 				{
+					// 計算済みの worldMatrix を取得
+					XMMATRIX world = t.worldMatrix;
+
 					// モデル固有のスケール補正 * Transformのスケール
-					XMFLOAT3 finalScale = {
-						t.scale.x * m.scaleOffset.x,
-						t.scale.y * m.scaleOffset.y,
-						t.scale.z * m.scaleOffset.z
-					};
+					if (m.scaleOffset.x != 1.0f || m.scaleOffset.y != 1.0f || m.scaleOffset.z != 1.0f)
+					{
+						XMMATRIX preScale = XMMatrixScaling(m.scaleOffset.x, m.scaleOffset.y, m.scaleOffset.z);
+						world = preScale * world;
+					}
 
 					// 描画
-					m_renderer->Draw(model, t.position, finalScale, t.rotation);
+					m_renderer->Draw(model, world);
 				}
 			});
 	}

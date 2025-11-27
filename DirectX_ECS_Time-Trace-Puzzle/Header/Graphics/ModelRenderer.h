@@ -44,6 +44,9 @@ public:
 	void Draw(std::shared_ptr<Model> model, const XMFLOAT3& pos,
 		const XMFLOAT3& scale = { 1,1,1 }, const XMFLOAT3& rot = { 0,0,0 });
 
+	// ÉèÅ[ÉãÉhçsóÒ
+	void Draw(std::shared_ptr<Model> model, const DirectX::XMMATRIX& worldMatrix);
+
 private:
 	ID3D11Device* m_device;
 	ID3D11DeviceContext* m_context;

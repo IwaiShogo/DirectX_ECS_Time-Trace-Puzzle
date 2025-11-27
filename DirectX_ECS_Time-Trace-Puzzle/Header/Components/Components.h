@@ -43,6 +43,9 @@ struct Transform
 	XMFLOAT3 rotation;	// pitch, yaw, roll (Euler angles in degrees or radians)
 	XMFLOAT3 scale;		// x, y, z
 
+	// ワールド行列
+	DirectX::XMMATRIX worldMatrix;
+
 	Transform(XMFLOAT3 p = { 0.0f, 0.0f, 0.0f }, XMFLOAT3 r = { 0.0f, 0.0f, 0.0f }, XMFLOAT3 s = { 1.0f, 1.0f, 1.0f })
 		: position(p), rotation(r), scale(s) {}
 };
@@ -65,9 +68,9 @@ struct Velocity
  */
 struct Tag
 {
-	const char* name;
+	std::string name;
 
-	Tag(const char* n = "Entity")
+	Tag(const std::string& n = "Entity")
 		: name(n) {}
 };
 
@@ -147,6 +150,8 @@ struct SpriteComponent
 	XMFLOAT4 color;			// 色と透明度
 	XMFLOAT2 pivot;			// 中心点（0.0 ~ 1.0）デフォルトは左上（0, 0）
 	
+	SpriteComponent() : width(0), height(0), color({ 1,1,1,1 }), pivot({ 0,0 }) {}
+
 	SpriteComponent(const std::string& key, float w, float h, const XMFLOAT4& c = { 1, 1, 1, 1 }, const XMFLOAT2& p = { 0, 0 })
 		: textureKey(key), width(w), height(h), color(c), pivot(p) {}
 };
@@ -160,6 +165,8 @@ struct MeshComponent
 	std::string modelKey;	// ResourceManagerのキー
 	XMFLOAT3 scaleOffset;	// モデル固有のスケール補正（アセットが巨大/極小な場合用）
 	XMFLOAT4 color;			// マテリアルカラー乗算用
+
+	MeshComponent() : scaleOffset({ 1, 1, 1 }), color({ 1, 1, 1, 1 }) {}
 
 	MeshComponent(const std::string& key,
 				  const XMFLOAT3& scale = { 1.0f, 1.0f, 1.0f },
@@ -181,6 +188,8 @@ struct AudioSource
 
 	// 内部状態管理用
 	bool isPlaying = false;
+
+	AudioSource() : volume(1.0f), range(20.0f), isLoop(false), playOnAwake(false) {}
 
 	AudioSource(const std::string& key,
 				float vol = 1.0f,
@@ -207,6 +216,8 @@ struct Lifetime
 {
 	float time;	// 残り時間
 
+	Lifetime() : time(0.0f) {}
+
 	Lifetime(float t)
 		: time(t) {}
 };
@@ -221,8 +232,20 @@ struct BillboardComponent
 	XMFLOAT2 size;	// 幅、高さ
 	XMFLOAT4 color;
 
+	BillboardComponent() : size({ 1,1 }), color({ 1,1,1,1 }) {}
+
 	BillboardComponent(const std::string& key, float w = 1.0f, float h = 1.0f, const XMFLOAT4& c = { 1, 1, 1, 1 })
 		: textureKey(key), size(w, h), color(c) {}
+};
+
+struct GlobalTransform
+{
+	DirectX::XMMATRIX matrix;
+
+	GlobalTransform()
+	{
+		matrix = DirectX::XMMatrixIdentity();
+	}
 };
 
 #endif // !___COMPONENTS_H___

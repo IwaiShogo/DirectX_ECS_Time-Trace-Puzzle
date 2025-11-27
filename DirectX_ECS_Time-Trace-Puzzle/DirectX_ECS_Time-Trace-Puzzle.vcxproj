@@ -110,7 +110,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)Library\DirectXTex;$(ProjectDir)Library\Assimp\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTex.lib;assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>x64\Debug\DirectXTex.lib;assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -142,8 +142,16 @@
     <ClInclude Include="Header\Core\Logger.h" />
     <ClInclude Include="Header\Core\Prefab.h" />
     <ClInclude Include="Header\Core\ResourceManager.h" />
+    <ClInclude Include="Header\Core\Serializer.h" />
     <ClInclude Include="Header\Core\Time.h" />
     <ClInclude Include="Header\ECS\ECS.h" />
+    <ClInclude Include="Header\Editor\Editor.h" />
+    <ClInclude Include="Header\Editor\GizmoSystem.h" />
+    <ClInclude Include="Header\Editor\HierarchyWindow.h" />
+    <ClInclude Include="Header\Editor\InspectorWindow.h" />
+    <ClInclude Include="Header\Editor\SystemWindow.h" />
+    <ClInclude Include="Header\Editor\GameCommands.h" />
+    <ClInclude Include="Header\Editor\CreatorWindow.h" />
     <ClInclude Include="Header\Graphics\BillboardRenderer.h" />
     <ClInclude Include="Header\Graphics\Model.h" />
     <ClInclude Include="Header\Graphics\ModelRenderer.h" />
@@ -158,6 +166,7 @@
     <ClInclude Include="Header\Systems\AudioSystem.h" />
     <ClInclude Include="Header\Systems\BillboardSystem.h" />
     <ClInclude Include="Header\Systems\CollisionSystem.h" />
+    <ClInclude Include="Header\Systems\HierarchySystem.h" />
     <ClInclude Include="Header\Systems\InputSystem.h" />
     <ClInclude Include="Header\Systems\LifetimeSystem.h" />
     <ClInclude Include="Header\Systems\ModelRenderSystem.h" />
@@ -187,6 +196,7 @@
     <ClCompile Include="Source\Core\AudioManager.cpp" />
     <ClCompile Include="Source\Core\Input.cpp" />
     <ClCompile Include="Source\Core\ResourceManager.cpp" />
+    <ClCompile Include="Source\Editor\Editor.cpp" />
     <ClCompile Include="Source\Graphics\BillboardRenderer.cpp" />
     <ClCompile Include="Source\Graphics\ModelRenderer.cpp" />
     <ClCompile Include="Source\Graphics\PrimitiveRenderer.cpp" />

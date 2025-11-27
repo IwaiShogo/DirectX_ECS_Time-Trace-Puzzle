@@ -35,6 +35,7 @@
 #include "Systems/ModelRenderSystem.h"
 #include "Systems/AudioSystem.h"
 #include "Systems/LifetimeSystem.h"
+#include "Systems/HierarchySystem.h"
 
 /**
  * @enum	SceneType
@@ -67,22 +68,6 @@ public:
 	// 初期化（リソース読み込み等）
 	virtual void Initialize()
 	{
-		m_world.registerSystem<AudioSystem>();
-
-		if (m_context->renderer)
-		{
-			m_world.registerSystem<RenderSystem>(m_context->renderer);
-		}
-
-		if (m_context->spriteRenderer)
-		{
-			m_world.registerSystem<SpriteRenderSystem>(m_context->spriteRenderer);
-		}
-
-		if (m_context->modelRenderer)
-		{
-			m_world.registerSystem<ModelRenderSystem>(m_context->modelRenderer);
-		}
 	}
 
 	// 終了処理（リソース解放等）
@@ -106,7 +91,6 @@ public:
 protected:
 	World		m_world;
 	Context*	m_context = nullptr;
-	Entity		m_selectedEntity = NullEntity;
 };
 
 #endif // !___ISCENE_H___

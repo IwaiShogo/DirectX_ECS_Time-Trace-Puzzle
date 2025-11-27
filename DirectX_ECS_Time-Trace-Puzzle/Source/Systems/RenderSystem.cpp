@@ -78,13 +78,29 @@ void RenderSystem::Render(Registry& registry, const Context& context)
 			XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 			if (registry.has<Tag>(e))
 			{
-				const char* name = registry.get<Tag>(e).name;
-				if (strcmp(name, "Player") == 0) color = { 0.0f, 1.0f, 0.0f, 1.0f };
-				if (strcmp(name, "Enemy") == 0) color = { 1.0f, 0.0f, 0.0f, 1.0f };
+				std::string name = registry.get<Tag>(e).name;
+				if (name == "Player") color = { 0.0f, 1.0f, 0.0f, 1.0f };
+				if (name == "Enemy") color = { 1.0f, 0.0f, 0.0f, 1.0f };
 			}
 
-			m_renderer->DrawBox(trans.position, box.size, color);
-		});
+			// 【修正】worldMatrix からワールド座標とスケールを取り出す
+			XMVECTOR scale, rot, pos;
+			XMMatrixDecompose(&scale, &rot, &pos, trans.worldMatrix);
+
+			XMFLOAT3 gPos, gScale;
+			XMStoreFloat3(&gPos, pos);
+			XMStoreFloat3(&gScale, scale);
+
+			// ボックスサイズにもスケールを適用する
+			XMFLOAT3 finalSize = {
+				box.size.x * gScale.x,
+				box.size.y * gScale.y,
+				box.size.z * gScale.z
+			};
+
+			// ワールド座標(gPos) と 補正後サイズ(finalSize) で描画
+			m_renderer->DrawBox(gPos, finalSize, color);
+			});
 	}
 
 	// -------------------------------------------------------

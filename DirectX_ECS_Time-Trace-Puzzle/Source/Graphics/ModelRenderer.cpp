@@ -21,6 +21,7 @@
 #include "Graphics/ModelRenderer.h"
 #include <d3dcompiler.h>
 #include <stdexcept>
+#include "Graphics/ModelRenderer.h"
 
 #pragma comment(lib, "d3dcompiler.lib")
 
@@ -97,28 +98,39 @@ void ModelRenderer::Begin(const XMMATRIX& view, const XMMATRIX& projection, cons
 
 void ModelRenderer::Draw(std::shared_ptr<Model> model, const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot)
 {
-	if (!model) return;
-
-	// ワールド行列計算
+	// 行列を作って、上の関数に丸投げする
 	XMMATRIX S = XMMatrixScaling(scale.x, scale.y, scale.z);
 	XMMATRIX R = XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
 	XMMATRIX T = XMMatrixTranslation(pos.x, pos.y, pos.z);
+
 	XMMATRIX world = S * R * T;
 
-	m_cbData.world = XMMatrixTranspose(world);
-	m_cbData.materialColor = { 1, 1, 1, 1 }; // 白
+	// 新しいDrawを呼ぶ
+	Draw(model, world);
+}
 
-	// 定数バッファ更新
+void ModelRenderer::Draw(std::shared_ptr<Model> model, const DirectX::XMMATRIX& worldMatrix)
+{
+	if (!model) return;
+
+	// 1. 定数バッファの更新
+	// 受け取った行列を転置してセット
+	m_cbData.world = XMMatrixTranspose(worldMatrix);
+	m_cbData.materialColor = { 1, 1, 1, 1 }; // デフォルト白
+
+	// シェーダーに送信
 	m_context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &m_cbData, 0, 0);
 
-	// 全メッシュを描画
-	for (const auto& mesh : model->meshes) {
+	// 2. メッシュごとの描画ループ
+	for (const auto& mesh : model->meshes)
+	{
+		// 頂点バッファ・インデックスバッファセット
 		UINT stride = sizeof(ModelVertex);
 		UINT offset = 0;
 		m_context->IASetVertexBuffers(0, 1, mesh.vertexBuffer.GetAddressOf(), &stride, &offset);
 		m_context->IASetIndexBuffer(mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
-		// テクスチャがあればセット
+		// テクスチャセット (なければ白テクスチャ)
 		ID3D11ShaderResourceView* srv = nullptr;
 		if (mesh.texture) {
 			srv = mesh.texture->srv.Get();
@@ -128,6 +140,7 @@ void ModelRenderer::Draw(std::shared_ptr<Model> model, const XMFLOAT3& pos, cons
 		}
 		m_context->PSSetShaderResources(0, 1, &srv);
 
+		// 描画実行
 		m_context->DrawIndexed(mesh.indexCount, 0, 0);
 	}
 }

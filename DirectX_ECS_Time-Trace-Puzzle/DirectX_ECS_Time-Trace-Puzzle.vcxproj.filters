@@ -55,6 +55,12 @@
     <Filter Include="Header Files\Audio">
       <UniqueIdentifier>{4a7c9e79-2da5-407c-bede-b01c11ee937c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Editor">
+      <UniqueIdentifier>{c422506f-a6da-4a70-b892-d939092731d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Editor">
+      <UniqueIdentifier>{aae84637-c754-4d45-b124-522f0b4fa791}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Header\ECS\ECS.h">
@@ -177,6 +183,33 @@
     <ClInclude Include="Library\ImGui\ImGuizmo.h">
       <Filter>Library\ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="Header\Editor\Editor.h">
+      <Filter>Header Files\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Editor\HierarchyWindow.h">
+      <Filter>Header Files\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Systems\HierarchySystem.h">
+      <Filter>Header Files\Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Editor\InspectorWindow.h">
+      <Filter>Header Files\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Editor\GizmoSystem.h">
+      <Filter>Header Files\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Editor\SystemWindow.h">
+      <Filter>Header Files\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Editor\GameCommands.h">
+      <Filter>Header Files\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Core\Serializer.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Editor\CreatorWindow.h">
+      <Filter>Header Files\Editor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">
@@ -241,6 +274,9 @@
     </ClCompile>
     <ClCompile Include="Library\ImGui\ImGuizmo.cpp">
       <Filter>Library\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Editor\Editor.cpp">
+      <Filter>Source Files\Editor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
