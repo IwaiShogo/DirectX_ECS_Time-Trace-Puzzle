@@ -23,6 +23,9 @@
 #include "Core/Input.h"
 #include "Core/ResourceManager.h"
 #include "Core/AudioManager.h"
+#include "Editor/Editor.h"
+#include "Editor/ThumbnailGenerator.h"
+#include "ImGuizmo.h"
 #include "main.h"
 #include <string>
 #include <stdexcept>
@@ -174,6 +177,10 @@ void Application::Initialize()
 	// Win32 / DX11 バインディングの初期化
 	ImGui_ImplWin32_Init(m_hwnd);
 	ImGui_ImplDX11_Init(m_device.Get(), m_context.Get());
+
+	// エディタ用の画面サイズで初期化
+	m_sceneRT = std::make_unique<RenderTarget>(m_device.Get(), Config::SCREEN_WIDTH, Config::SCREEN_HEIGHT);
+	m_gameRT = std::make_unique<RenderTarget>(m_device.Get(), Config::SCREEN_WIDTH, Config::SCREEN_HEIGHT);
 #endif // _DEBUG
 
 	// マネージャー
@@ -204,6 +211,11 @@ void Application::Initialize()
 	context.modelRenderer = m_modelRenderer.get();
 	context.billboardRenderer = m_billboardRenderer.get();
 
+	// サムネイル生成器の初期化
+	ThumbnailGenerator::Instance().Initialize(m_device.Get(), m_context.Get(), m_modelRenderer.get());
+	// 全プレファブのサムネイルを作る
+	ThumbnailGenerator::Instance().GenerateAll("Resources/Prefabs");
+
 	// シーンマネージャ
 	m_sceneManager.SetContext(context);
 	m_appContext = context;
@@ -221,50 +233,219 @@ void Application::Update()
 	// オーディオ
 	AudioManager::Instance().Update();
 
-#ifdef _DEBUG
-	// --- ImGui ---
-	ImGui_ImplDX11_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-#endif // _DEBUG
-
 	// シーン更新
+	m_sceneManager.SetContext(m_appContext);
 	m_sceneManager.Update();
 }
 
 void Application::Render()
 {
-	// 1. レンダーターゲットをセット
-	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+#ifdef _DEBUG
+	// ====================================================
+	// Debug (Editor) Mode
+	// ====================================================
 
-	// 2. ビューポート設定
-	D3D11_VIEWPORT vp = {};
-	vp.Width = static_cast<float>(Config::SCREEN_WIDTH);
-	vp.Height = static_cast<float>(Config::SCREEN_HEIGHT);
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = 0;
-	vp.TopLeftY = 0;
-	m_context->RSSetViewports(1, &vp);
+	// ----------------------------------------------------
+	// 1. ImGui フレーム開始 (一番最初！)
+	// ----------------------------------------------------
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+	ImGuizmo::BeginFrame();
+	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 
-	float color[] = { 0.1f, 0.1f, 0.3f, 1.0f };
-	m_context->ClearRenderTargetView(m_renderTargetView.Get(), color);
-
-	// 深度バッファのクリア
-	if (m_depthStencilView)
+	if (m_sceneWindowSize.y > 0)
 	{
-		m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		float aspect = m_sceneWindowSize.x / m_sceneWindowSize.y;
+		auto& reg = m_sceneManager.GetWorld().getRegistry();
+
+		reg.view<Tag, Camera>([&](Entity e, Tag& tag, Camera& cam)
+			{
+				if (tag.name == "MainCamera")
+				{
+					cam.aspect = aspect;
+				}
+			});
+
+		m_sceneRT->Resize(m_device.Get(), (int)m_sceneWindowSize.x, (int)m_sceneWindowSize.y);
 	}
 
-	// シーン描画
-	m_sceneManager.Render();
+	// ----------------------------------------------------
+	// 2. Scene View (RT) への描画
+	// ----------------------------------------------------
+	m_sceneRT->Activate(m_context.Get(), m_depthStencilView.Get());
+	m_sceneRT->Clear(m_context.Get(), 0.2f, 0.2f, 0.2f, 1.0f);
+	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	// 後始末
-	m_context->OMSetDepthStencilState(nullptr, 0);
-	m_context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+	// エディタ用の設定（全てON）
+	{
+		Context sceneCtx = m_appContext;	// コピー作成
+		sceneCtx.debug.useDebugCamera = true;
+		sceneCtx.debug.showGrid = true;
+		sceneCtx.debug.showAxis = true;
+		sceneCtx.debug.showColliders = true;
+		sceneCtx.debug.showSoundLocation = true;
 
-#ifdef _DEBUG
-	// --- ImGui ---
+		// シーンマネージャに一時的にセットして描画
+		m_sceneManager.SetContext(sceneCtx);
+		m_sceneManager.Render();
+	}
+
+	// ----------------------------------------------------
+	// 3. Game View (RT) への描画
+	// ----------------------------------------------------
+	m_gameRT->Activate(m_context.Get(), m_depthStencilView.Get());
+	m_gameRT->Clear(m_context.Get(), 0.0f, 0.0f, 0.0f, 1.0f);
+	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+	// ゲーム用の設定（デバッグ系を全て強制OFF）
+	{
+		Context gameCtx = m_appContext;	// コピー作成
+		gameCtx.debug.useDebugCamera = false;
+		gameCtx.debug.showGrid = false;
+		gameCtx.debug.showAxis = false;
+		gameCtx.debug.showColliders = false;
+		gameCtx.debug.showSoundLocation = false;
+		gameCtx.debug.wireframeMode = false;
+
+		// シーンマネージャにセットして描画
+		m_sceneManager.SetContext(gameCtx);
+		m_sceneManager.Render();
+	}
+
+	// 設定を元に戻す（Editor表示用）
+	m_sceneManager.SetContext(m_appContext);
+
+	// ----------------------------------------------------
+	// 4. バックバッファに戻して ImGui 描画
+	// ----------------------------------------------------
+	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+
+	// Scene Window (RT画像を表示)
+	ImGui::Begin("Scene");
+	{
+		// 今のウィンドウサイズを取得
+		ImVec2 size = ImGui::GetContentRegionAvail();
+		m_sceneWindowSize = size;
+
+		// レンダーターゲットのリサイズと描画
+		ImGui::Image(m_sceneRT->GetID(), size);
+
+		// 画像の左座標を取得
+		ImVec2 imageMin = ImGui::GetItemRectMin();
+
+		// カメラ行列の行列
+		XMMATRIX view = XMMatrixIdentity();
+		XMMATRIX proj = XMMatrixIdentity();
+		bool cameraFound = false;
+
+		World& world = m_sceneManager.GetWorld();
+ 		m_sceneManager.GetWorld().getRegistry().view<Tag, Camera, Transform>([&](Entity e, Tag& tag, Camera& cam, Transform& t) {
+			if (!cameraFound && tag.name == "MainCamera")
+			{
+				XMVECTOR eye = XMLoadFloat3(&t.position);
+				XMMATRIX rot = XMMatrixRotationRollPitchYaw(t.rotation.x, t.rotation.y, 0.0f);
+				XMVECTOR look = XMVector3TransformCoord(XMVectorSet(0, 0, 1, 0), rot);
+				XMVECTOR up = XMVector3TransformCoord(XMVectorSet(0, 1, 0, 0), rot);
+
+				// ギズモ用に RH (右手系) で計算！
+				view = XMMatrixLookToLH(eye, look, up);
+				proj = XMMatrixPerspectiveFovLH(cam.fov, cam.aspect, cam.nearZ, cam.farZ);
+
+				cameraFound = true;
+			}
+			});
+
+	if (cameraFound)
+	{
+		Editor::Instance().DrawGizmo(world, view, proj, imageMin.x, imageMin.y, size.x, size.y);
+	}
+
+		if (!ImGuizmo::IsUsing() && ImGui::IsItemClicked(ImGuiMouseButton_Left) && m_sceneManager.GetContext().debug.enableMousePicking)
+		{
+			// 1. マウスの相対座標を計算 (画像左上からの位置)
+			ImVec2 mousePos = ImGui::GetMousePos();		 // マウスの絶対座標
+			ImVec2 imageMin = ImGui::GetItemRectMin();	 // 画像の左上絶対座標
+
+			float x = mousePos.x - imageMin.x;
+			float y = mousePos.y - imageMin.y;
+
+			// 2. NDC座標 (-1.0 ~ 1.0) に変換
+			// Y軸は下向きがプラスなので、3D空間(上向きプラス)に合わせて反転
+			float ndcX = (x / size.x) * 2.0f - 1.0f;
+			float ndcY = ((y / size.y) * 2.0f - 1.0f) * -1.0f;
+			
+			// 3. カメラ行列の取得 (MainCameraを探す)
+			XMMATRIX view = XMMatrixIdentity();
+			XMMATRIX proj = XMMatrixIdentity();
+			XMVECTOR camPos = XMVectorZero();
+			bool cameraFound = false;
+
+			// 簡易的にメインカメラを探す (デバッグカメラ対応は後ほど)
+			// ※シーンマネージャ経由でWorldにアクセス
+			World& world = m_sceneManager.GetWorld();
+			world.getRegistry().view<Tag, Camera, Transform>([&](Entity e, Tag& tag, Camera& cam, Transform& t) {
+				if (!cameraFound && strcmp(tag.name.c_str(), "MainCamera") == 0) {
+					camPos = XMLoadFloat3(&t.position);
+
+					// 行列計算 (RenderSystemと同じロジック)
+					XMMATRIX rot = XMMatrixRotationRollPitchYaw(t.rotation.x, t.rotation.y, 0.0f);
+					XMVECTOR look = XMVector3TransformCoord(XMVectorSet(0, 0, 1, 0), rot);
+					XMVECTOR up = XMVector3TransformCoord(XMVectorSet(0, 1, 0, 0), rot);
+
+					view = XMMatrixLookToLH(camPos, look, up);
+					proj = XMMatrixPerspectiveFovLH(cam.fov, cam.aspect, cam.nearZ, cam.farZ);
+					cameraFound = true;
+				}
+				});
+
+			if (cameraFound) {
+				// 4. レイの作成 (Unproject)
+				// スクリーン座標(ndcX, ndcY) から ワールド空間へ
+				XMVECTOR rayOrigin = camPos;
+				XMVECTOR rayTarget = XMVector3Unproject(
+					XMVectorSet(x, y, 1.0f, 0.0f), // Z=1 (Far)
+					0, 0, size.x, size.y, 0.0f, 1.0f, // Viewportは画像のサイズ
+					proj, view, XMMatrixIdentity()
+				);
+				XMVECTOR rayDir = XMVector3Normalize(rayTarget - rayOrigin);
+
+				XMFLOAT3 origin, dir;
+				XMStoreFloat3(&origin, rayOrigin);
+				XMStoreFloat3(&dir, rayDir);
+
+				// 5. レイキャスト実行
+				float dist;
+				Entity hit = CollisionSystem::Raycast(world.getRegistry(), origin, dir, dist);
+
+				// 6. 選択状態の更新 (Editorのメンバを更新したい)
+				// Editorに「選択する関数」を追加するか、publicメンバにする必要がありますが、
+				// ここでは Editor::Instance().SelectEntity(hit) のような関数を作るのがベストです。
+				// 簡易的に Editor::Draw の引数で渡しているならそこで更新できますが、
+				// Editor::Draw はここより後で呼ばれるため、Editor側にセッターを作りましょう。
+
+				Editor::Instance().SetSelectedEntity(hit); // ★これを作成してください
+				if (hit != NullEntity) Logger::Log("Selected: " + std::to_string(hit));
+			}
+		}
+	}
+	ImGui::End();
+
+	// Game Window
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0)); // 余白なし
+	ImGui::Begin("Game");
+	{
+		ImVec2 size = ImGui::GetContentRegionAvail();
+		m_gameRT->Resize(m_device.Get(), (int)size.x, (int)size.y);
+		ImGui::Image(m_gameRT->GetID(), size);
+	}
+	ImGui::End();
+	ImGui::PopStyleVar();
+
+	// その他のウィンドウ (Inspector, Hierarchy...)
+	Editor::Instance().Draw(m_sceneManager.GetWorld(), m_appContext);
+
+	// 描画終了
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
@@ -274,7 +455,41 @@ void Application::Render()
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
 	}
-#endif // _DEBUG
+
+	// ビューポート復帰
+	D3D11_VIEWPORT vp = {};
+	vp.Width = static_cast<float>(Config::SCREEN_WIDTH);
+	vp.Height = static_cast<float>(Config::SCREEN_HEIGHT);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	m_context->RSSetViewports(1, &vp);
+
+#else
+	// ====================================================
+	// Release Mode (Game Only)
+	// ====================================================
+	m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+	// ... (ビューポート設定) ...
+	D3D11_VIEWPORT vp = {};
+	vp.Width = static_cast<float>(Config::SCREEN_WIDTH);
+	vp.Height = static_cast<float>(Config::SCREEN_HEIGHT);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	m_context->RSSetViewports(1, &vp);
+
+	float color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	m_context->ClearRenderTargetView(m_renderTargetView.Get(), color);
+	m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+	// 強制的にゲーム設定
+	m_sceneManager.GetContext().debug.useDebugCamera = false;
+	m_sceneManager.Render();
+
+#endif
 
 	m_swapChain->Present(Config::VSYNC_ENABLED ? 1: 0, 0);
 }

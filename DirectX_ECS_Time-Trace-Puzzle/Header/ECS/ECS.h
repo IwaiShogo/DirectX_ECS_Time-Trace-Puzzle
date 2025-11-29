@@ -224,6 +224,17 @@ public:
 		freeIds.push_back(entity);
 	}
 
+	void clear()
+	{
+		for (auto& pool : pools)
+		{
+			if (pool) pool.reset();
+		}
+		pools.clear();
+		freeIds.clear();
+		nextEntity = 1;
+	}
+
 	// ============================================================
 	// Multi-View Implementation (C++17)
 	// ============================================================

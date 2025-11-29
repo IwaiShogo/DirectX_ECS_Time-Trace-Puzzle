@@ -321,8 +321,10 @@ public:
 			reg.view<Tag, Transform, Camera>([&](Entity e, Tag& tag, Transform& t, Camera& c) {
 				if (tag.name == "MainCamera")
 				{
+					bool isRightClicking = Input::GetMouseRightButton();
+
 					// ImGui操作中は動かさない
-					if (!ImGui::GetIO().WantCaptureKeyboard && !ImGui::GetIO().WantCaptureMouse)
+					if (isRightClicking ||!ImGui::GetIO().WantCaptureMouse)
 					{
 						// 1. マウス回転 (右クリック)
 						if (Input::GetMouseRightButton()) {
@@ -339,7 +341,8 @@ public:
 						XMMATRIX rotM = XMMatrixRotationRollPitchYaw(t.rotation.x, t.rotation.y, 0.0f);
 						XMVECTOR forward = XMVector3TransformCoord(XMVectorSet(0, 0, 1, 0), rotM);
 						XMVECTOR right = XMVector3TransformCoord(XMVectorSet(1, 0, 0, 0), rotM);
-						XMVECTOR up = XMVector3TransformCoord(XMVectorSet(0, 1, 0, 0), rotM); // カメラ基準の上
+						//XMVECTOR up = XMVector3TransformCoord(XMVectorSet(0, 1, 0, 0), rotM); // カメラ基準の上
+						XMVECTOR up = XMVectorSet(0, 1, 0, 0);
 
 						XMVECTOR pos = XMLoadFloat3(&t.position);
 

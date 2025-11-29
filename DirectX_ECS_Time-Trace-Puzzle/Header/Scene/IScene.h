@@ -36,6 +36,7 @@
 #include "Systems/AudioSystem.h"
 #include "Systems/LifetimeSystem.h"
 #include "Systems/HierarchySystem.h"
+#include "Systems/BillBoardSystem.h"
 
 /**
  * @enum	SceneType
@@ -85,8 +86,7 @@ public:
 		m_world.Render(*m_context);
 	}
 
-	// ImGuiデバッグ表示用
-	virtual void OnInspector() {}
+	World& GetWorld() { return m_world; }
 
 protected:
 	World		m_world;

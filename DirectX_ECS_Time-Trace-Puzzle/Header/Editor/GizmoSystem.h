@@ -31,42 +31,17 @@
 class GizmoSystem
 {
 public:
-	static void Draw(Registry& reg, Entity& selected)
+	static void Draw(Registry& reg, Entity& selected, const DirectX::XMMATRIX& view, const DirectX::XMMATRIX& proj, float x, float y, float width, float height)
 	{
 		// --- ギズモ処理 ---
 		// 選択中のEntityがあり、Transformを持っている場合
-		if (selected != NullEntity && reg.has<Transform>(selected)) {
+		if (selected != NullEntity && reg.has<Transform>(selected))
+		{
+			ImGuizmo::SetID((int)selected);
+			ImGuizmo::SetDrawlist();
+			ImGuizmo::SetRect(x, y, width, height);
 
-			ImGuizmo::BeginFrame();
-
-			// カメラ情報の取得
-			XMMATRIX view = XMMatrixIdentity();
-			XMMATRIX proj = XMMatrixIdentity();
-
-			// メインカメラを探して計算
-			reg.view<Tag, Camera, Transform>([&](Entity e, Tag& tag, Camera& cam, Transform& t) {
-				if (tag.name == "MainCamera") {
-
-					// 1. ビュー行列 (LookToLH)
-					XMVECTOR eye = XMLoadFloat3(&t.position);
-
-					// 回転情報から向きを計算
-					XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(t.rotation.x, t.rotation.y, 0.0f);
-					XMVECTOR lookDir = XMVector3TransformCoord(XMVectorSet(0, 0, 1, 0), rotationMatrix);
-					XMVECTOR upDir = XMVector3TransformCoord(XMVectorSet(0, 1, 0, 0), rotationMatrix);
-
-					view = XMMatrixLookToLH(eye, lookDir, upDir);
-
-					// 2. プロジェクション行列
-					proj = XMMatrixPerspectiveFovLH(cam.fov, cam.aspect, cam.nearZ, cam.farZ);
-				}
-				});
-
-			// ImGuizmoの設定
-			ImGuiViewport* viewport = ImGui::GetMainViewport();
-			ImGuizmo::SetRect(viewport->Pos.x, viewport->Pos.y, viewport->Size.x, viewport->Size.y);
-
-			// 行列をfloat配列に変換
+			// 行列をfloat配列に変換 (Transpose含む)
 			float viewM[16], projM[16];
 			MatrixToFloat16(view, viewM);
 			MatrixToFloat16(proj, projM);
@@ -75,22 +50,48 @@ public:
 			Transform& t = reg.get<Transform>(selected);
 
 			// Transform -> Matrix
-			XMMATRIX worldMat = XMMatrixScaling(t.scale.x, t.scale.y, t.scale.z) *
+			XMMATRIX worldMat = 
+				XMMatrixScaling(t.scale.x, t.scale.y, t.scale.z) *
 				XMMatrixRotationRollPitchYaw(t.rotation.x, t.rotation.y, t.rotation.z) *
 				XMMatrixTranslation(t.position.x, t.position.y, t.position.z);
-			float worldM[16];
-			MatrixToFloat16(worldMat, worldM);
 
-			// 操作 (移動: TRANSLATE, 回転: ROTATE, 拡大: SCALE)
-			// ※キーボードショートカットで切り替えられるようにすると便利 (W, E, Rなど)
+			float worldM[16];
+			MatrixToFloat16(t.worldMatrix, worldM);
+
+			if (Input::GetKeyDown('L'))
+			{
+				auto LogMatrix = [](const char* name, float* m) {
+					Logger::Log("--- " + std::string(name) + " ---");
+					for (int i = 0; i < 4; ++i) {
+						Logger::Log(
+							std::to_string(m[i + 0]) + ", " + std::to_string(m[i + 4]) + ", " +
+							std::to_string(m[i + 8]) + ", " + std::to_string(m[i + 12])
+						);
+					}
+					};
+
+				LogMatrix("View Matrix", viewM);
+				LogMatrix("Proj Matrix", projM);
+				LogMatrix("World Matrix", worldM);
+
+				// ギズモの有効状態も確認
+				Logger::Log("Gizmo Enabled: " + std::string(ImGuizmo::IsOver() ? "Over" : "Not Over"));
+				Logger::Log("Gizmo Using: " + std::string(ImGuizmo::IsUsing() ? "Using" : "Not Using"));
+			}
+
+			// 操作モード
 			static ImGuizmo::OPERATION mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
 			if (Input::GetKeyDown('1')) mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
 			if (Input::GetKeyDown('2')) mCurrentGizmoOperation = ImGuizmo::ROTATE;
 			if (Input::GetKeyDown('3')) mCurrentGizmoOperation = ImGuizmo::SCALE;
 
+			if (ImGuizmo::IsOver())
+			{
+				Logger::Log("Gizmo Hovered!");
+			}
+
 			// ギズモ描画と操作判定
-			if (ImGuizmo::Manipulate(viewM, projM, mCurrentGizmoOperation, ImGuizmo::LOCAL, worldM)) {
-				// 操作されたら値を書き戻す
+			if (ImGuizmo::Manipulate(viewM, projM, mCurrentGizmoOperation, ImGuizmo::WORLD, worldM)) {
 				Float16ToTransform(worldM, t);
 			}
 		}
@@ -107,6 +108,7 @@ private:
 	static void Float16ToTransform(const float* in, Transform& t) {
 		DirectX::XMFLOAT4X4 m;
 		memcpy(&m, in, sizeof(float) * 16);
+
 		DirectX::XMMATRIX mat = DirectX::XMLoadFloat4x4(&m);
 
 		DirectX::XMVECTOR scale, rotQuat, trans;

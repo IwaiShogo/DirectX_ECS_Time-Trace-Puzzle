@@ -31,6 +31,7 @@
 #include "Graphics/SpriteRenderer.h"
 #include "Graphics/ModelRenderer.h"
 #include "Graphics/BillboardRenderer.h"
+#include "Graphics/RenderTarget.h"
 
 // ImGuiのヘッダ
 #include "imgui.h"
@@ -71,8 +72,14 @@ private:
 	std::unique_ptr<BillboardRenderer>	m_billboardRenderer;
 	Context m_appContext;
 
+	// エディタ用レンダーターゲット
+	std::unique_ptr<RenderTarget> m_sceneRT;
+	std::unique_ptr<RenderTarget> m_gameRT;
+
 	// シーンマネージャー
 	SceneManager m_sceneManager;
+
+	ImVec2 m_sceneWindowSize = { (float)Config::SCREEN_WIDTH, (float)Config::SCREEN_HEIGHT };
 };
 
 #endif // !___APPLICATION_H___

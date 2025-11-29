@@ -45,9 +45,9 @@ struct DebugSettings
 	bool showColliders = DefaultOn;
 	bool showSoundLocation = DefaultOn;
 	bool enableMousePicking = DefaultOn;
+	bool useDebugCamera = DefaultOn;
 
 	// 以下の設定はDebug時でも最初はOFFにしておくのが一般的（お好みで DefaultOn にしてもOK）
-	bool useDebugCamera = false;
 	bool wireframeMode = false;
 	bool showDemoWindow = false;
 	bool pauseGame = false;

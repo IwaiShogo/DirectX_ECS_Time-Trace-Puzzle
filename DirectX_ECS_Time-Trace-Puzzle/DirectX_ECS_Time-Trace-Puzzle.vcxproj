@@ -152,10 +152,12 @@
     <ClInclude Include="Header\Editor\SystemWindow.h" />
     <ClInclude Include="Header\Editor\GameCommands.h" />
     <ClInclude Include="Header\Editor\CreatorWindow.h" />
+    <ClInclude Include="Header\Editor\ThumbnailGenerator.h" />
     <ClInclude Include="Header\Graphics\BillboardRenderer.h" />
     <ClInclude Include="Header\Graphics\Model.h" />
     <ClInclude Include="Header\Graphics\ModelRenderer.h" />
     <ClInclude Include="Header\Graphics\PrimitiveRenderer.h" />
+    <ClInclude Include="Header\Graphics\RenderTarget.h" />
     <ClInclude Include="Header\Graphics\SpriteRenderer.h" />
     <ClInclude Include="Header\Graphics\Texture.h" />
     <ClInclude Include="Header\main.h" />
@@ -200,6 +202,7 @@
     <ClCompile Include="Source\Graphics\BillboardRenderer.cpp" />
     <ClCompile Include="Source\Graphics\ModelRenderer.cpp" />
     <ClCompile Include="Source\Graphics\PrimitiveRenderer.cpp" />
+    <ClCompile Include="Source\Graphics\RenderTarget.cpp" />
     <ClCompile Include="Source\Graphics\SpriteRenderer.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Scene\SceneGame.cpp" />
@@ -217,16 +220,12 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\Shaders\Standard.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    <None Include="Resources\Shaders\Billboard.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\Shaders\Billboard.hlsl">
+    <None Include="Resources\Shaders\Standard.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

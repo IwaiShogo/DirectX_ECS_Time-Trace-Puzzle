@@ -102,6 +102,41 @@ struct BoxCollider
 		: size(s), offset(o) {}
 };
 
+enum class ColliderType
+{
+	Box,		// ボックス
+	Sphere,		// 球体
+	Capsule,	// カプセル
+};
+
+struct ColliderComponent
+{
+	ColliderType type;
+
+	// 共用体でメモリ節約
+	union
+	{
+		struct { float x, y, z; } boxSize;
+		struct { float radius; } sphere;
+		struct { float radius, height; } capsule;
+	};
+
+	XMFLOAT3 offset;
+
+	// コンストラクタ
+	ColliderComponent() : type(ColliderType::Box), offset({ 0,0,0 }) { boxSize = { 1,1,1 }; }
+
+	// ヘルパー関数
+	static ColliderComponent CreateSphere(float r)
+	{
+		ColliderComponent c; c.type = ColliderType::Sphere; c.sphere.radius = r; return c;
+	}
+	static ColliderComponent CreateCapsule(float r, float h)
+	{
+		ColliderComponent c; c.type = ColliderType::Capsule; c.capsule.radius = r; c.capsule.height = h; return c;
+	}
+};
+
 /**
  * @struct	PlayerInput
  * @brief	操作可能フラグ

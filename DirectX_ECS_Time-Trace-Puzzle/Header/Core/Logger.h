@@ -125,6 +125,8 @@ public:
 		ImGui::End();
 	}
 
+	static void ClearCommands() { s_commands.clear(); }
+
 private:
 	static void AddLog(const std::string& msg, LogType type, const ImVec4& color) {
 		s_logs.push_back({ msg, type, color });

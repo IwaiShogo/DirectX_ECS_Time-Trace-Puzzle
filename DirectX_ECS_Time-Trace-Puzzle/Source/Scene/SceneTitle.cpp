@@ -43,16 +43,3 @@ void SceneTitle::Update()
 void SceneTitle::Render()
 {
 }
-
-void SceneTitle::OnInspector()
-{
-#ifdef _DEBUG
-	ImGui::Begin("Title Menu");
-	ImGui::Text("Press Enter to Start");
-	if (ImGui::Button("Go to Game Scene"))
-	{
-		SceneManager::ChangeScene(SceneType::Game);
-	}
-	ImGui::End();
-#endif // _DEBUG
-}

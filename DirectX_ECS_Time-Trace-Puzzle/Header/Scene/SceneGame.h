@@ -35,7 +35,6 @@ public:
 	void Finalize() override;
 	void Update() override;
 	void Render() override;
-	void OnInspector() override;
 };
 
 #endif // !___SCENE_GAME_H___

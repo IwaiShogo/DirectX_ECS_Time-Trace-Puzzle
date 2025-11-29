@@ -30,6 +30,7 @@ void SceneGame::Initialize()
 {
 	// 親クラスの初期化
 	//IScene::Initialize();
+	m_world.getRegistry().clear();
 
 	// --- システムの登録 ---
 	// 1. 入力
@@ -44,17 +45,21 @@ void SceneGame::Initialize()
 	// 5. 衝突判定
 	m_world.registerSystem<CollisionSystem>();
 	// 6. 描画
-	if (m_context->renderer)
-	{
-		m_world.registerSystem<RenderSystem>(m_context->renderer);
-	}
 	if (m_context->spriteRenderer)
 	{
 		m_world.registerSystem<SpriteRenderSystem>(m_context->spriteRenderer);
 	}
+	if (m_context->billboardRenderer)
+	{
+		m_world.registerSystem<BillboardSystem>(m_context->billboardRenderer);
+	}
 	if (m_context->modelRenderer)
 	{
 		m_world.registerSystem<ModelRenderSystem>(m_context->modelRenderer);
+	}
+	if (m_context->renderer)
+	{
+		m_world.registerSystem<RenderSystem>(m_context->renderer);
 	}
 	// 7. オーディオ
 	m_world.registerSystem<AudioSystem>();
@@ -100,6 +105,9 @@ void SceneGame::Initialize()
 
 void SceneGame::Finalize()
 {
+#ifdef _DEBUG
+	Logger::ClearCommands();
+#endif // _DEBUG
 }
 
 void SceneGame::Update()
@@ -124,15 +132,4 @@ void SceneGame::Update()
 void SceneGame::Render()
 {
 	IScene::Render();
-}
-
-void SceneGame::OnInspector()
-{
-#ifdef _DEBUG
-	if (m_context)
-	{
-		// Editorに全て任せる
-		Editor::Instance().Draw(m_world, *m_context);
-	}
-#endif // _DEBUG
 }

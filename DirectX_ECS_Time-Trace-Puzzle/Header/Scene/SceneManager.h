@@ -70,6 +70,17 @@ public:
 		return m_currentType;
 	}
 
+	// 現在のシーンからワールドを取得
+	World& GetWorld()
+	{
+		if (!m_currentScene)
+		{
+			static World emptyWorld;
+			return emptyWorld;
+		}
+		return m_currentScene->GetWorld();
+	}
+
 	// 最初のシーンを設定して開始
 	void Initialize(SceneType startScene)
 	{
@@ -89,9 +100,6 @@ public:
 		if (m_currentScene)
 		{
 			m_currentScene->Update();
-
-			// デバッグ表示
-			m_currentScene->OnInspector();
 		}
 	}
 

@@ -83,13 +83,19 @@ void RenderSystem::Render(Registry& registry, const Context& context)
 				if (name == "Enemy") color = { 1.0f, 0.0f, 0.0f, 1.0f };
 			}
 
-			// 【修正】worldMatrix からワールド座標とスケールを取り出す
+			// worldMatrix からワールド座標とスケールを取り出す
 			XMVECTOR scale, rot, pos;
 			XMMatrixDecompose(&scale, &rot, &pos, trans.worldMatrix);
 
-			XMFLOAT3 gPos, gScale;
-			XMStoreFloat3(&gPos, pos);
+			XMFLOAT3 gScale;
 			XMStoreFloat3(&gScale, scale);
+
+			// オフセットをワールド座標へ変換
+			XMVECTOR offsetVec = XMLoadFloat3(&box.offset);
+			XMVECTOR centerPosVec = XMVector3Transform(offsetVec, trans.worldMatrix);
+
+			XMFLOAT3 centerPos;
+			XMStoreFloat3(&centerPos, centerPosVec);
 
 			// ボックスサイズにもスケールを適用する
 			XMFLOAT3 finalSize = {
@@ -98,8 +104,8 @@ void RenderSystem::Render(Registry& registry, const Context& context)
 				box.size.z * gScale.z
 			};
 
-			// ワールド座標(gPos) と 補正後サイズ(finalSize) で描画
-			m_renderer->DrawBox(gPos, finalSize, color);
+			// currentPosを使用して描画
+			m_renderer->DrawBox(centerPos, finalSize, color);
 			});
 	}
 
@@ -113,7 +119,7 @@ void RenderSystem::Render(Registry& registry, const Context& context)
 
 		// アイコン画像を取得 (assets.json または LoadTexture で指定したキー)
 		// ※とりあえず "player" か、用意した "icon_sound" を指定
-		auto iconTex = ResourceManager::Instance().GetTexture("icon_sound");
+		auto iconTex = ResourceManager::Instance().GetTexture("star");
 
 		// 画像がなければ "player" などで代用
 		if (!iconTex) iconTex = ResourceManager::Instance().GetTexture("star");
@@ -148,13 +154,7 @@ void RenderSystem::Render(Registry& registry, const Context& context)
 		// A. 現在のビューポートを保存
 		UINT numViewports = 1;
 		D3D11_VIEWPORT oldViewport;
-		// 一旦簡易版
-		oldViewport.Width = static_cast<float>(Config::SCREEN_WIDTH);
-		oldViewport.Height = static_cast<float>(Config::SCREEN_HEIGHT);
-		oldViewport.MinDepth = 0.0f;
-		oldViewport.MaxDepth = 1.0f;
-		oldViewport.TopLeftX = 0;
-		oldViewport.TopLeftY = 0;
+		m_renderer->GetDeviceContext()->RSGetViewports(&numViewports, &oldViewport);
 
 		// B. 右上用の新しいビューポートを作成
 		float gizmoSize = 100.0f;	// 100x100ピクセル
@@ -165,8 +165,10 @@ void RenderSystem::Render(Registry& registry, const Context& context)
 		gizmoViewport.Height = gizmoSize;
 		gizmoViewport.MinDepth = 0.0f;
 		gizmoViewport.MaxDepth = 1.0f;
-		// 右上座標: (画面幅 - サイズ - 隙間, 隙間)
-		gizmoViewport.TopLeftX = Config::SCREEN_WIDTH - gizmoSize - padding;
+
+		// Config::SCREEN_WIDTH ではなく、現在のビューポート（oldViewport）の幅を使う！
+		// これにより、Sceneビューのサイズが変わっても、その中の右上に正しく表示されます
+		gizmoViewport.TopLeftX = oldViewport.Width - gizmoSize - padding;
 		gizmoViewport.TopLeftY = padding;
 
 		// ビューポート適用

@@ -47,6 +47,11 @@ public:
 	void Initialize();
 	void Draw(World& world, Context& ctx);
 
+	void DrawGizmo(World& world, const DirectX::XMMATRIX& view, const DirectX::XMMATRIX& proj, float x, float y, float w, float h);
+
+	void SetSelectedEntity(Entity e) { m_selectedEntity = e; }
+	Entity& GetSelectedEntity() { return m_selectedEntity; }
+
 private:
 	Editor() = default;
 	~Editor() = default;

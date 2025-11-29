@@ -35,16 +35,20 @@ void CollisionSystem::Update(Registry& registry)
 	std::vector<ColliderData> colliders;
 
 	registry.view<Transform, BoxCollider>([&](Entity e, Transform& t, BoxCollider& b) {
-		// ★ここが修正ポイント
-		// worldMatrix から「ワールド座標」と「ワールドスケール」を取り出す
+		// 1. ワールド行列
 		XMVECTOR scale, rot, pos;
 		XMMatrixDecompose(&scale, &rot, &pos, t.worldMatrix);
-
-		XMFLOAT3 gPos, gScale;
-		XMStoreFloat3(&gPos, pos);
+		XMFLOAT3 gScale;
 		XMStoreFloat3(&gScale, scale);
 
-		colliders.push_back({ e, gPos, gScale, &b });
+		// 2. オフセットをワールド座標に変換する
+		XMVECTOR offsetVec = XMLoadFloat3(&b.offset);
+		XMVECTOR finalPosVec = XMVector3Transform(offsetVec, t.worldMatrix);
+
+		XMFLOAT3 finalPos;
+		XMStoreFloat3(&finalPos, finalPosVec);
+
+		colliders.push_back({ e, finalPos, gScale, &b });
 		});
 
 	size_t count = colliders.size();
@@ -167,8 +171,28 @@ Entity CollisionSystem::Raycast(Registry& registry, const XMFLOAT3& rayOrigin, c
 	float closestDist = FLT_MAX;
 
 	registry.view<Transform, BoxCollider>([&](Entity e, Transform& t, BoxCollider& b) {
+		// 1. ワールド行列からスケールと位置を取り出す
+		XMVECTOR scale, rot, pos;
+		XMMatrixDecompose(&scale, &rot, &pos, t.worldMatrix);
+
+		XMFLOAT3 gScale;
+		XMStoreFloat3(&gScale, scale);
+
+		// 2. オフセットを考慮した中心座標を計算
+		XMVECTOR offsetVec = XMLoadFloat3(&b.offset);
+		XMVECTOR finalPosVec = XMVector3Transform(offsetVec, t.worldMatrix);
+		XMFLOAT3 finalPos;
+		XMStoreFloat3(&finalPos, finalPosVec);
+
+		// 3. スケールを考慮したボックスサイズ
+		BoxCollider scaledBox = b;
+		scaledBox.size.x *= gScale.x;
+		scaledBox.size.y *= gScale.y;
+		scaledBox.size.z *= gScale.z;
+
+		// 4. 判定 (finalPos と scaledBox を使う)
 		float dist = 0.0f;
-		if (IntersectRayAABB(rayOrigin, rayDir, t.position, b, dist)) {
+		if (IntersectRayAABB(rayOrigin, rayDir, finalPos, scaledBox, dist)) {
 			if (dist < closestDist && dist > 0.0f) {
 				closestDist = dist;
 				closestEntity = e;

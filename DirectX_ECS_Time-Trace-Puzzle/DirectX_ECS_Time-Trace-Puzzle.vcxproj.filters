@@ -210,6 +210,12 @@
     <ClInclude Include="Header\Editor\CreatorWindow.h">
       <Filter>Header Files\Editor</Filter>
     </ClInclude>
+    <ClInclude Include="Header\Graphics\RenderTarget.h">
+      <Filter>Header Files\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\Editor\ThumbnailGenerator.h">
+      <Filter>Header Files\Editor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">
@@ -278,6 +284,9 @@
     <ClCompile Include="Source\Editor\Editor.cpp">
       <Filter>Source Files\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Graphics\RenderTarget.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\DebugPrimitive.hlsl">
@@ -289,10 +298,10 @@
     <None Include="Resources\resources.json">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Resources\Shaders\Standard.hlsl">
+    <None Include="Resources\Shaders\Billboard.hlsl">
       <Filter>Resource Files\Shaders</Filter>
     </None>
-    <None Include="Resources\Shaders\Billboard.hlsl">
+    <None Include="Resources\Shaders\Standard.hlsl">
       <Filter>Resource Files\Shaders</Filter>
     </None>
   </ItemGroup>
