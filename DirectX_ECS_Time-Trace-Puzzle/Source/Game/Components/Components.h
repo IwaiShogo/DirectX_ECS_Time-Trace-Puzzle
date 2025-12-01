@@ -55,7 +55,10 @@ struct Transform
 	DirectX::XMMATRIX worldMatrix;
 
 	Transform(XMFLOAT3 p = { 0.0f, 0.0f, 0.0f }, XMFLOAT3 r = { 0.0f, 0.0f, 0.0f }, XMFLOAT3 s = { 1.0f, 1.0f, 1.0f })
-		: position(p), rotation(r), scale(s) {}
+		: position(p), rotation(r), scale(s)
+	{
+		worldMatrix = DirectX::XMMatrixIdentity();
+	}
 };
 
 /**
